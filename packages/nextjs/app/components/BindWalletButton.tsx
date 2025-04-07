@@ -16,7 +16,7 @@ export function BindWalletButton() {
         {isLoading ? "Binding..." : success ? "Wallet Bound ✅" : "Bind Wallet"}
       </button>
 
-      {displayPubKey && <WalletAddress address={displayPubKey} />}
+      {displayPubKey?.isBound && <WalletAddress address={displayPubKey.address} />}
     </>
   );
 }

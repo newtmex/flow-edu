@@ -43,9 +43,9 @@ Fetches (or generates if not existing) a FlowEDU HD Wallet for a connected user 
 
 ```json
 {
-    "address": "0xUserAddress",
-    "flowEDUAddress": "0xFlowEDUAddress",
-    "isBound": false
+  "address": "0xUserAddress",
+  "flowEDUAddress": "0xFlowEDUAddress",
+  "isBound": false
 }
 ```
 
@@ -55,9 +55,9 @@ Fetches (or generates if not existing) a FlowEDU HD Wallet for a connected user 
 
 ```typescript
 export type GenerateKeypairResponse = {
-    address: string;
-    flowEDUAddress: string;
-    isBound: boolean;
+  address: string;
+  flowEDUAddress: string;
+  isBound: boolean;
 };
 ```
 
@@ -74,9 +74,9 @@ export type GenerateKeypairResponse = {
 
 ## Notes
 
--   Always use `useBindWallet()` hook → internally calls this API automatically.
--   This API is idempotent — it will return existing wallet if already created.
--   Wallet index is auto-incremented by row count → deterministic & safe.
+- Always use `useBindWallet()` hook → internally calls this API automatically.
+- This API is idempotent — it will return existing wallet if already created.
+- Wallet index is auto-incremented by row count → deterministic & safe.
 
 # Environment Variables
 
@@ -108,17 +108,52 @@ All required environment variables are listed in `.env.example`.
 cp .env.example .env
 ```
 
-
-
 2. Fill in your local credentials and secrets.
 
 ---
 
 ## Notes
 
--   Never commit your real `.env` file to source control.
--   The `HD_WALLET_MNEMONIC` should be a valid 12 or 24 word BIP-39 mnemonic.
--   The `ENCRYPTION_SECRET` should be a strong random string.
--   If your Postgres database does not have a password, leave `DATABASE_PASSWORD` blank.
+- Never commit your real `.env` file to source control.
+- The `HD_WALLET_MNEMONIC` should be a valid 12 or 24 word BIP-39 mnemonic.
+- The `ENCRYPTION_SECRET` should be a strong random string.
+- If your Postgres database does not have a password, leave `DATABASE_PASSWORD` blank.
 
 ---
+
+---
+
+## Bind Existing User Wallet to FlowEDU Wallet
+
+`POST /api/bind-wallet`
+
+### Description
+
+Verifies ownership of the user's EVM wallet (e.g., MetaMask) by requiring a signed message.  
+Once verified, it binds the user’s EVM wallet to their generated FlowEDU wallet.
+
+> This ensures that only the rightful owner of a wallet can link it to a FlowEDU wallet.
+
+---
+
+### Request Body
+
+| Field       | Type   | Description                                      |
+| ----------- | ------ | ------------------------------------------------ |
+| userAddress | string | The user's EVM wallet address (signing address). |
+| publicKey   | string | The FlowEDU wallet public key to bind.           |
+| signature   | string | Signature proving ownership of `userAddress`.    |
+| message     | string | Exact message signed (must include `publicKey`). |
+
+---
+
+### Example Request
+
+```json
+{
+  "userAddress": "0xUserAddress",
+  "publicKey": "0xFlowEDUPublicKey",
+  "signature": "0xSignedMessage",
+  "message": "FlowEDU Wallet Binding\nPublic Key: 0xFlowEDUPublicKey"
+}
+```
