@@ -35,7 +35,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ address: 
       .insert(walletBindings)
       .values({
         userAddress: address,
-        publicKey: wallet.publicKey,
+        flowEDUAddress: wallet.address,
         privateKey: encryptPrivateKey(wallet.privateKey), // Always store encrypted privKey
       })
       .returning()
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ address: 
 
   return Response.json({
     address: binding.userAddress,
-    publicKey: binding.publicKey,
+    flowEDUAddress: binding.flowEDUAddress,
     isBound: Boolean(binding.signature), // Has user signed message yet?
   });
 }

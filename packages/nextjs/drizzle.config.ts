@@ -2,7 +2,7 @@ import { defineConfig } from "drizzle-kit";
 import "~~/drizzle/envConfig";
 
 export const dbConfig = {
-  password: process.env.DATABASE_PASSWORD,
+  password: process.env.DATABASE_PASSWORD || undefined,
   database: process.env.DATABASE_NAME!,
   host: process.env.DATABASE_HOST!,
   port: Number(process.env.DATABASE_PORT),
@@ -22,7 +22,7 @@ if (ca) {
 }
 
 export default defineConfig({
-  schema: "./drizzle/schema/index.ts",
+  schema: "./drizzle/schema.ts",
   dialect: "postgresql",
   out: "./drizzle",
   dbCredentials: dbConfig,

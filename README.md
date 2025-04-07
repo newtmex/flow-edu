@@ -44,7 +44,7 @@ Fetches (or generates if not existing) a FlowEDU HD Wallet for a connected user 
 ```json
 {
     "address": "0xUserAddress",
-    "publicKey": "0xFlowEDUPublicKey",
+    "flowEDUAddress": "0xFlowEDUAddress",
     "isBound": false
 }
 ```
@@ -56,7 +56,7 @@ Fetches (or generates if not existing) a FlowEDU HD Wallet for a connected user 
 ```typescript
 export type GenerateKeypairResponse = {
     address: string;
-    publicKey: string;
+    flowEDUAddress: string;
     isBound: boolean;
 };
 ```

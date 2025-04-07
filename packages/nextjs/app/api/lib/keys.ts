@@ -1,6 +1,9 @@
 import { createCipheriv, randomBytes, scryptSync } from "crypto";
 
 const ENCRYPTION_SECRET = process.env.ENCRYPTION_SECRET!;
+if (!ENCRYPTION_SECRET) {
+  throw new Error("ENCRYPTION_SECRET is not defined");
+}
 const IV_LENGTH = 16;
 
 export function encryptPrivateKey(privateKey: string): string {
