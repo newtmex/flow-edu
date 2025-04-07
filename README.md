@@ -77,3 +77,48 @@ export type GenerateKeypairResponse = {
 -   Always use `useBindWallet()` hook → internally calls this API automatically.
 -   This API is idempotent — it will return existing wallet if already created.
 -   Wallet index is auto-incremented by row count → deterministic & safe.
+
+# Environment Variables
+
+This project uses environment variables to manage sensitive data like database credentials, wallet mnemonics, and encryption secrets.
+
+All required environment variables are listed in `.env.example`.
+
+---
+
+## Variables
+
+| Key                | Required | Description                                             | Example                             |
+| ------------------ | -------- | ------------------------------------------------------- | ----------------------------------- |
+| DATABASE_HOST      | Yes      | Postgres database host                                  | localhost                           |
+| DATABASE_PORT      | Yes      | Postgres database port                                  | 5431                                |
+| DATABASE_NAME      | Yes      | Postgres database name                                  | postgres                            |
+| DATABASE_USER      | Yes      | Postgres database user                                  | postgres                            |
+| DATABASE_PASSWORD  | Optional | Postgres database password (can be empty for local dev) |                                     |
+| HD_WALLET_MNEMONIC | Yes      | Master mnemonic for deriving FlowEDU HD wallets         | "smooth sick tube holiday ..."      |
+| ENCRYPTION_SECRET  | Yes      | Secret key used to encrypt private keys in the database | "flowedu-dev-super-secure-key-123!" |
+
+---
+
+## Usage
+
+1. Copy the example file:
+
+```bash
+cp .env.example .env
+```
+
+
+
+2. Fill in your local credentials and secrets.
+
+---
+
+## Notes
+
+-   Never commit your real `.env` file to source control.
+-   The `HD_WALLET_MNEMONIC` should be a valid 12 or 24 word BIP-39 mnemonic.
+-   The `ENCRYPTION_SECRET` should be a strong random string.
+-   If your Postgres database does not have a password, leave `DATABASE_PASSWORD` blank.
+
+---
