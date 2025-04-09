@@ -50,3 +50,5 @@ export const WalletAddress = ({ address }: { address: string }) => {
     </div>
   );
 };
+
+// 0xBdae8D35EDe5bc5174E805DcBe3F7714d142DAAb

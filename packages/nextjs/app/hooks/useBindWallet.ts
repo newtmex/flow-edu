@@ -19,16 +19,14 @@ export function useBindWallet() {
       const { flowEDUAddress: publicKey, isBound }: GenerateKeypairResponse = await keyRes.json();
 
       if (!isBound) {
-        const message = `FlowEDU Wallet Binding\nPublic Key: ${publicKey}`;
-
-        // const message = `Bind public key to FlowEDU wallet\nPublic Key: ${publicKey}\nTimestamp: ${timestamp}`;
+        const message = `Bind public key to FlowEDU wallet\nPublic Key: ${publicKey}\nTimestamp: ${timestamp}`;
         const signature = await signMessageAsync({ message });
 
         // Store binding information
         const res = await fetch("/api/bind-wallet", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userAddress: address, publicKey, signature, timestamp }),
+          body: JSON.stringify({ userAddress: address, publicKey, signature, timestamp, message }),
         });
 
         const data = await res.json();
