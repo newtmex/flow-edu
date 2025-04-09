@@ -5,47 +5,56 @@ import { GenerateKeypairResponse } from "~~/types/wallet";
 export function useBindWallet() {
   const { address } = useAccount();
   const { signMessageAsync } = useSignMessage();
+
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [displayPubKey, setDisplayPubKey] = useState<{ address: string; isBound: boolean }>();
 
   const bind = async () => {
+    if (!address) return;
+
     setIsLoading(true);
-    const timestamp = Date.now();
+    setError(null);
 
     try {
-      // Generate pubKey
-      const keyRes = await fetch("/api/generate-keypair/" + address);
+      const keyRes = await fetch(`/api/generate-keypair/${address}`);
+
+      if (!keyRes.ok) {
+        throw new Error("Failed to generate keypair");
+      }
+
       const { flowEDUAddress: publicKey, isBound }: GenerateKeypairResponse = await keyRes.json();
 
       if (!isBound) {
         const message = `FlowEDU Wallet Binding\nPublic Key: ${publicKey}`;
-
-        // const message = `Bind public key to FlowEDU wallet\nPublic Key: ${publicKey}\nTimestamp: ${timestamp}`;
         const signature = await signMessageAsync({ message });
 
-        // Store binding information
         const res = await fetch("/api/bind-wallet", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userAddress: address, publicKey, signature, timestamp }),
+          body: JSON.stringify({ userAddress: address, publicKey, signature, message }),
         });
 
-        const data = await res.json();
-        if (data.success) setSuccess(true);
-      } else {
-        setDisplayPubKey({
-          address: publicKey,
-          isBound: true,
-        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data?.message || "Failed to bind wallet");
+        }
       }
 
+      setDisplayPubKey({
+        address: publicKey,
+        isBound: true,
+      });
+
       setSuccess(true);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Unexpected error");
+    } finally {
       setIsLoading(false);
-    } catch (error) {
-      console.log(error);
     }
   };
 
-  return { bind, isLoading, success, displayPubKey };
+  return { bind, isLoading, success, error, displayPubKey };
 }

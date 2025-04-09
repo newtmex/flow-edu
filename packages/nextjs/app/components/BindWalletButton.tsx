@@ -7,17 +7,22 @@ import CopyToClipboard from "react-copy-to-clipboard";
 import { CheckCircleIcon, DocumentDuplicateIcon } from "@heroicons/react/24/outline";
 
 export function BindWalletButton() {
-  const { bind, isLoading, success, displayPubKey } = useBindWallet();
+  const { bind, isLoading, success, error, displayPubKey } = useBindWallet();
 
   return (
-    // display the wallet
-    <>
-      <button onClick={bind} disabled={isLoading} className="bg-blue-600 text-white px-4 py-2 rounded">
-        {isLoading ? "Binding..." : success ? "Wallet Bound ✅" : "Bind Wallet"}
+    <div className="space-y-2">
+      <button
+        onClick={bind}
+        disabled={isLoading}
+        className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
+      >
+        {isLoading ? "Binding..." : success && displayPubKey?.isBound ? "Wallet Bound ✅" : "Bind Wallet"}
       </button>
 
+      {error && <p className="text-red-500 text-sm">{error}</p>}
+
       {displayPubKey?.isBound && <WalletAddress address={displayPubKey.address} />}
-    </>
+    </div>
   );
 }
 
