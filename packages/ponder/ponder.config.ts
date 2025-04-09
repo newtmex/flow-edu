@@ -23,16 +23,25 @@ import { erc20Abi, http } from "viem";
 //   }];
 // }));
 
+if (!process.env.START_BLOCK_BSC!) {
+    throw new Error("Please set the START_BLOCK_BSC environment variable");
+}
+
 export default createConfig({
     networks: {
-        BSC: { chainId: 56, transport: http(process.env.PONDER_RPC_URL_56) },
+        BSC: {
+            chainId: 56,
+            transport: http(process.env.PONDER_RPC_URL_56),
+            pollingInterval: 3_000,
+            maxRequestsPerSecond: 10,
+        },
     },
     contracts: {
         EDUCoin: {
             network: "BSC",
             abi: erc20Abi,
             address: "0xBdEAe1cA48894A1759A8374D63925f21f2Ee2639",
-            startBlock: 48203513,
+            startBlock: Number(process.env.START_BLOCK_BSC),
         },
     },
 });
