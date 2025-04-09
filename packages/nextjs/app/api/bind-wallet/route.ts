@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { isAddress, verifyMessage } from "viem";
 import { db } from "~~/drizzle/db";
 import { walletBindings } from "~~/drizzle/schema";
@@ -13,6 +13,10 @@ import { walletBindings } from "~~/drizzle/schema";
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const { userAddress: address, signature, message } = body;
+
+  if (!signature || !message) {
+    return Response.json({ message: "Invalid Request" }, { status: 400 });
+  }
 
   // Validate userAddress
   if (!isAddress(address)) {
