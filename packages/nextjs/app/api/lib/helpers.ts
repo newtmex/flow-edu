@@ -3,7 +3,7 @@ import { centralAccount } from "./config";
 import { Address, parseEther } from "viem";
 
 // Config
-const MIN_BOUND_WALLET_GAS = parseEther("0.004");
+export const MIN_BOUND_WALLET_GAS = parseEther("0.004");
 const MAX_GAS_SUBSIDY = parseEther("0.012");
 
 export const trySendBNBGas = async (to: Address) => {

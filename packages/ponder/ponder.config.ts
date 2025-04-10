@@ -59,6 +59,7 @@ export default createConfig({
             network: "EDUChain",
             interval: 1,
             startBlock: Number(process.env.START_BLOCK_EDU),
+            
         },
     },
 });

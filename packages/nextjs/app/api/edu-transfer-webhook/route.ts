@@ -12,7 +12,7 @@ export const POST = async (req: NextRequest) => {
     where: eq(walletBindings.flowEDUAddress, to),
   });
 
-  if (!boundWallet) return NextResponse.json({ status: "ignored" });
+  if (!boundWallet?.signature) return NextResponse.json({ status: "ignored" });
 
   let hash: `0x${string}` | null = null;
 

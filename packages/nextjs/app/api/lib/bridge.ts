@@ -2,7 +2,7 @@ import Encryption from "./Encryption";
 import { bscClient, bscWalletClient, eduClient, eduWalletClient } from "./clients";
 import { centralAccount, feeCollectorAddress } from "./config";
 import { LAYERZERO_CHAIN_IDS } from "./constants";
-import { trySendBNBGas, trySendEDUGas } from "./helpers";
+import { MIN_BOUND_WALLET_GAS, trySendBNBGas, trySendEDUGas } from "./helpers";
 import { encodePacked, erc20Abi, parseUnits } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import externalContracts from "~~/contracts/externalContracts";
@@ -117,6 +117,7 @@ export const bridgeEDUChainToArbitrum = async (boundWalletEncryptedPrivKey: stri
 
   const fee = (balance * BigInt(FEE_BPS)) / 10_000n;
   const arbSys = externalContracts["41923"].ArbSys;
+  let amountToBridge = balance - fee - MIN_BOUND_WALLET_GAS;
 
   // Estimate gas usage for withdrawEth
   const withdrawGas = await eduClient.estimateContractGas({
@@ -125,21 +126,18 @@ export const bridgeEDUChainToArbitrum = async (boundWalletEncryptedPrivKey: stri
     address: arbSys.address,
     functionName: "withdrawEth",
     args: [centralAccount.address],
-    value: balance, // worst case
+    value: amountToBridge, // worst case
   });
-
   // Estimate gas usage for fee transfer
   const feeTransferGas = await eduClient.estimateGas({
     account: boundWallet,
     to: feeCollectorAddress,
     value: fee,
   });
-
   const gasPrice = await eduClient.getGasPrice();
-
   const totalGasCost = (withdrawGas + feeTransferGas) * gasPrice;
 
-  const amountToBridge = balance - fee - totalGasCost;
+  amountToBridge -= totalGasCost;
 
   if (amountToBridge <= 0n) return null;
 
