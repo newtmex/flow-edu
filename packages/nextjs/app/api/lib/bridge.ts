@@ -113,13 +113,37 @@ export const bridgeEDUChainToArbitrum = async (boundWalletEncryptedPrivKey: stri
   // ERC20 bridging on EDUChain not supported yet
   if (tokenAddress) return null;
 
-  const fee = (balance * BigInt(FEE_BPS)) / 10000n;
-  const amountToBridge = balance - fee;
-
   await trySendEDUGas(boundWallet.address);
 
+  const fee = (balance * BigInt(FEE_BPS)) / 10_000n;
   const arbSys = externalContracts["41923"].ArbSys;
 
+  // Estimate gas usage for withdrawEth
+  const withdrawGas = await eduClient.estimateContractGas({
+    account: boundWallet,
+    abi: arbSys.abi,
+    address: arbSys.address,
+    functionName: "withdrawEth",
+    args: [centralAccount.address],
+    value: balance, // worst case
+  });
+
+  // Estimate gas usage for fee transfer
+  const feeTransferGas = await eduClient.estimateGas({
+    account: boundWallet,
+    to: feeCollectorAddress,
+    value: fee,
+  });
+
+  const gasPrice = await eduClient.getGasPrice();
+
+  const totalGasCost = (withdrawGas + feeTransferGas) * gasPrice;
+
+  const amountToBridge = balance - fee - totalGasCost;
+
+  if (amountToBridge <= 0n) return null;
+
+  // Withdraw to central account
   const hash = await eduWalletClient.writeContract({
     account: boundWallet,
     abi: arbSys.abi,
@@ -129,7 +153,12 @@ export const bridgeEDUChainToArbitrum = async (boundWalletEncryptedPrivKey: stri
     value: amountToBridge,
   });
 
-  await eduWalletClient.sendTransaction({ to: feeCollectorAddress, account: boundWallet, value: fee });
+  // Send fee to fee collector
+  await eduWalletClient.sendTransaction({
+    to: feeCollectorAddress,
+    account: boundWallet,
+    value: fee,
+  });
 
   return hash;
 };
