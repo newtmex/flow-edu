@@ -14,8 +14,7 @@ import { walletBindings } from "~~/drizzle/schema";
 
 // NextJS 15 convention — route params come as a promise
 export async function GET(req: NextRequest, props: { params: Promise<{ address: string }> }) {
-  const params = await props.params;
-  const { address } = params;
+  const { address } = normalizeAddresses(await props.params);
 
   if (!isAddress(address)) {
     return Response.json({ message: "Invalid Address" }, { status: 400 });
