@@ -1,0 +1,128 @@
+{
+  "id": "000cd659-5a9c-41d6-ac95-55bdb495e38a",
+  "prevId": "68a13f4e-e813-474a-8348-6a8fc23db0c7",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.wallet_bindings": {
+      "name": "wallet_bindings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "type": "byDefault",
+            "name": "wallet_bindings_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "user_address": {
+          "name": "user_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "flowEDUAddress": {
+          "name": "flowEDUAddress",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "private_key": {
+          "name": "private_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "signature": {
+          "name": "signature",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "message": {
+          "name": "message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "timestamp": {
+          "name": "timestamp",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "wallet_bindings_user_address_unique": {
+          "name": "wallet_bindings_user_address_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_address"
+          ]
+        },
+        "wallet_bindings_flowEDUAddress_unique": {
+          "name": "wallet_bindings_flowEDUAddress_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "flowEDUAddress"
+          ]
+        },
+        "wallet_bindings_private_key_unique": {
+          "name": "wallet_bindings_private_key_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "private_key"
+          ]
+        },
+        "wallet_bindings_signature_unique": {
+          "name": "wallet_bindings_signature_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "signature"
+          ]
+        },
+        "wallet_bindings_message_unique": {
+          "name": "wallet_bindings_message_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "message"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
