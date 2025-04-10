@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { normalizeAddress } from "../lib/helpers";
 import { eq } from "drizzle-orm";
 import { isAddress, isHex, verifyMessage } from "viem";
 import { z } from "zod";
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
   const binding = await db
     .update(walletBindings)
     .set({ signature, message })
-    .where(eq(walletBindings.userAddress, address))
+    .where(eq(walletBindings.userAddress, normalizeAddress(address)))
     .returning()
     .then(rows => rows[0]);
 

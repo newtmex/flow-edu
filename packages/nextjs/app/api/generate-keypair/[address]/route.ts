@@ -2,6 +2,7 @@
 import { NextRequest } from "next/server";
 import Encryption from "../../lib/Encryption";
 import { deriveHDWallet } from "../../lib/deriveHDWallet";
+import { normalizeAddresses } from "../../lib/drizzleUtils";
 // Encryption util for privKey
 import { isAddress } from "viem";
 // Address validation util
@@ -32,11 +33,13 @@ export async function GET(req: NextRequest, props: { params: Promise<{ address: 
 
     binding = await db
       .insert(walletBindings)
-      .values({
-        userAddress: address,
-        flowEDUAddress: wallet.address,
-        privateKey: Encryption.new().encryptPlainText(wallet.privateKey), // Always store encrypted privKey
-      })
+      .values(
+        normalizeAddresses({
+          userAddress: address,
+          flowEDUAddress: wallet.address,
+          privateKey: Encryption.new().encryptPlainText(wallet.privateKey), // Always store encrypted privKey
+        }),
+      )
       .returning()
       .then(data => data[0]);
   }

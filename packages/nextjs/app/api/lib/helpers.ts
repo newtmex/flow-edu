@@ -39,3 +39,5 @@ export const trySendEDUGas = async (to: Address) => {
     value: refillAmount,
   });
 };
+
+export const normalizeAddress = (address: string): Address => address.toLowerCase();

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { bridgeBscToArbitrum, bridgeEDUChainToArbitrum } from "../lib/bridge";
+import { normalizeAddresses } from "../lib/drizzleUtils";
 import { eq } from "drizzle-orm";
 import { db } from "~~/drizzle/db";
 import { walletBindings } from "~~/drizzle/schema";
 
 export const POST = async (req: NextRequest) => {
-  const { from, to, value, txHash, ca, origin } = await req.json();
+  const { from, to, value, txHash, ca, origin } = normalizeAddresses(await req.json());
 
   const boundWallet = await db.query.walletBindings.findFirst({
     where: eq(walletBindings.flowEDUAddress, to),
