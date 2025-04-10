@@ -27,21 +27,38 @@ if (!process.env.START_BLOCK_BSC!) {
     throw new Error("Please set the START_BLOCK_BSC environment variable");
 }
 
-export default createConfig({
-    networks: {
-        BSC: {
-            chainId: 56,
-            transport: http(process.env.PONDER_RPC_URL_56),
-            pollingInterval: 3_000,
-            maxRequestsPerSecond: 10,
-        },
+if (!process.env.START_BLOCK_EDU!) {
+    throw new Error("Please set the START_BLOCK_EDU environment variable");
+}
+
+export const networks = {
+    BSC: {
+        chainId: 56,
+        transport: http(process.env.PONDER_RPC_URL_56),
+        pollingInterval: 3_000,
+        maxRequestsPerSecond: 10,
     },
+    EDUChain: {
+        chainId: 41923,
+        transport: http(process.env.PONDER_RPC_URL_41923),
+    },
+} as const;
+
+export default createConfig({
+    networks,
     contracts: {
-        EDUCoin: {
+        EDUCoinBSC: {
             network: "BSC",
             abi: erc20Abi,
             address: "0xBdEAe1cA48894A1759A8374D63925f21f2Ee2639",
             startBlock: Number(process.env.START_BLOCK_BSC),
+        },
+    },
+    blocks: {
+        MonitorNativeEDUTransfers: {
+            network: "EDUChain",
+            interval: 1,
+            startBlock: Number(process.env.START_BLOCK_EDU),
         },
     },
 });
