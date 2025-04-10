@@ -1,9 +1,9 @@
 import Encryption from "./Encryption";
-import { bscClient, bscWalletClient } from "./clients";
-import { centralAccount } from "./config";
+import { bscClient, bscWalletClient, eduClient, eduWalletClient } from "./clients";
+import { centralAccount, feeCollectorAddress } from "./config";
 import { LAYERZERO_CHAIN_IDS } from "./constants";
-import { trySendBNBGas } from "./helpers";
-import { encodePacked, erc20Abi, pad, parseEther, parseUnits, toHex } from "viem";
+import { trySendBNBGas, trySendEDUGas } from "./helpers";
+import { encodePacked, erc20Abi, parseUnits } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import externalContracts from "~~/contracts/externalContracts";
 
@@ -76,6 +76,60 @@ export const bridgeBscToArbitrum = async (boundWalletEncryptedPrivKey: string, t
     ],
     value: nativeFee,
   });
+
+  await bscWalletClient.writeContract({
+    account: boundWallet,
+    abi: erc20Abi,
+    address: tokenAddress,
+    functionName: "transfer",
+    args: [feeCollectorAddress, fee],
+  });
+
+  return hash;
+};
+
+export const bridgeEDUChainToArbitrum = async (boundWalletEncryptedPrivKey: string, tokenAddress: string | null) => {
+  const boundWallet = privateKeyToAccount(Encryption.new().decryptCipherText(boundWalletEncryptedPrivKey) as any);
+  const [balance, decimals] = await Promise.all([
+    !tokenAddress
+      ? eduClient.getBalance({ address: boundWallet.address })
+      : eduClient.readContract({
+          address: tokenAddress,
+          abi: erc20Abi,
+          functionName: "balanceOf",
+          args: [boundWallet.address],
+        }),
+    !tokenAddress
+      ? 18
+      : bscClient.readContract({
+          address: tokenAddress,
+          abi: erc20Abi,
+          functionName: "decimals",
+        }),
+  ]);
+
+  if (balance < parseUnits("1", decimals)) return null;
+
+  // ERC20 bridging on EDUChain not supported yet
+  if (tokenAddress) return null;
+
+  const fee = (balance * BigInt(FEE_BPS)) / 10000n;
+  const amountToBridge = balance - fee;
+
+  await trySendEDUGas(boundWallet.address);
+
+  const arbSys = externalContracts["41923"].ArbSys;
+
+  const hash = await eduWalletClient.writeContract({
+    account: boundWallet,
+    abi: arbSys.abi,
+    address: arbSys.address,
+    functionName: "withdrawEth",
+    args: [centralAccount.address],
+    value: amountToBridge,
+  });
+
+  await eduWalletClient.sendTransaction({ to: feeCollectorAddress, account: boundWallet, value: fee });
 
   return hash;
 };
