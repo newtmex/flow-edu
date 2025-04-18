@@ -24,10 +24,11 @@ export function useBindWallet() {
         throw new Error("Failed to generate keypair");
       }
 
-      const { flowEDUAddress: publicKey, isBound }: GenerateKeypairResponse = await keyRes.json();
+      const { flowEDUAddress: publicKey, isBound, message }: GenerateKeypairResponse = await keyRes.json();
 
       if (!isBound) {
-        const message = `FlowEDU Wallet Binding\nPublic Key: ${publicKey}`;
+        if (!message) throw new Error("Binding message not retrieved");
+
         const signature = await signMessageAsync({ message });
 
         const res = await fetch("/api/bind-wallet", {

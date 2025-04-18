@@ -4817,6 +4817,7 @@ __metadata:
     "@testing-library/jest-dom": ^6.6.3
     "@testing-library/react": ^16.3.0
     "@trivago/prettier-plugin-sort-imports": ~4.3.0
+    "@types/luxon": ^3
     "@types/node": ~18.19.50
     "@types/react": ~19.0.7
     "@typescript-eslint/eslint-plugin": ~5.40.0
@@ -4841,6 +4842,7 @@ __metadata:
     graphql-request: ^7.1.0
     jsdom: ^26.0.0
     kubo-rpc-client: ~5.0.2
+    luxon: ^3.6.1
     next: ~15.2.0
     next-nprogress-bar: ~2.3.13
     next-themes: ~0.3.0
@@ -6019,6 +6021,13 @@ __metadata:
   version: 0.0.29
   resolution: "@types/json5@npm:0.0.29"
   checksum: e60b153664572116dfea673c5bda7778dbff150498f44f998e34b5886d8afc47f16799280e4b6e241c0472aef1bc36add771c569c68fc5125fc2ae519a3eb9ac
+  languageName: node
+  linkType: hard
+
+"@types/luxon@npm:^3":
+  version: 3.6.2
+  resolution: "@types/luxon@npm:3.6.2"
+  checksum: fa7bf7d74544c77c2010739337d359c5d6f9b0424de0e0eb273f7bae203996168cc33c2ad6f3b35771eac8fea8b7e5bcce72b91d129924d0f84b91dc216de42e
   languageName: node
   linkType: hard
 
@@ -13987,6 +13996,13 @@ __metadata:
   dependencies:
     yallist: ^4.0.0
   checksum: f97f499f898f23e4585742138a22f22526254fdba6d75d41a1c2526b3b6cc5747ef59c5612ba7375f42aca4f8461950e925ba08c991ead0651b4918b7c978297
+  languageName: node
+  linkType: hard
+
+"luxon@npm:^3.6.1":
+  version: 3.6.1
+  resolution: "luxon@npm:3.6.1"
+  checksum: bc6c24dde90f4263f548cc5a4ea3328e9c9511bee0b2255bd319639712862f1eb14a39c1b2dcbff8a8bf6686996d28f45b8fc902994a72dd05a29cef1269a6a4
   languageName: node
   linkType: hard
 

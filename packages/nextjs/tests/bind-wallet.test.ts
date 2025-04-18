@@ -18,6 +18,8 @@ describe("POST /api/bind-wallet", () => {
       userAddress,
       flowEDUAddress: "0xFlowEDUAddress",
       privateKey: "encryptedPrivKey",
+      message: "",
+      timestamp: 0,
     });
   });
 
