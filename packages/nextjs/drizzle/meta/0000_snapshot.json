@@ -1,5 +1,5 @@
 {
-  "id": "68a13f4e-e813-474a-8348-6a8fc23db0c7",
+  "id": "2e5d518a-e1ff-411a-879d-d0c1d2d38b4a",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -8,27 +8,10 @@
       "name": "wallet_bindings",
       "schema": "",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "identity": {
-            "type": "byDefault",
-            "name": "wallet_bindings_id_seq",
-            "schema": "public",
-            "increment": "1",
-            "startWith": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "cache": "1",
-            "cycle": false
-          }
-        },
-        "user_address": {
-          "name": "user_address",
+        "userAddress": {
+          "name": "userAddress",
           "type": "text",
-          "primaryKey": false,
+          "primaryKey": true,
           "notNull": true
         },
         "flowEDUAddress": {
@@ -37,8 +20,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "private_key": {
-          "name": "private_key",
+        "privateKey": {
+          "name": "privateKey",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -61,8 +44,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "created_at": {
-          "name": "created_at",
+        "createdAt": {
+          "name": "createdAt",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false,
@@ -72,7 +55,28 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "wallet_bindings_flowEDUAddress_unique": {
+          "name": "wallet_bindings_flowEDUAddress_unique",
+          "nullsNotDistinct": false,
+          "columns": ["flowEDUAddress"]
+        },
+        "wallet_bindings_privateKey_unique": {
+          "name": "wallet_bindings_privateKey_unique",
+          "nullsNotDistinct": false,
+          "columns": ["privateKey"]
+        },
+        "wallet_bindings_signature_unique": {
+          "name": "wallet_bindings_signature_unique",
+          "nullsNotDistinct": false,
+          "columns": ["signature"]
+        },
+        "wallet_bindings_message_unique": {
+          "name": "wallet_bindings_message_unique",
+          "nullsNotDistinct": false,
+          "columns": ["message"]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
