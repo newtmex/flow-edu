@@ -31,7 +31,8 @@ const Home: NextPage = () => {
                 <span className="block text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-200">
                   FlowEDU
                 </span>
-                Bind your wallet once, and our automated system takes care of the rest—no manual bridging, no hassle.
+                Bind your wallet once, send tokens to bound wallet, and our automated system takes care of the rest—no
+                manual bridging, no hassle.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4">

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useBindWallet } from "../hooks/useBindWallet";
 import CopyToClipboard from "react-copy-to-clipboard";
 import { useAccount } from "wagmi";
@@ -21,7 +20,7 @@ export function BindWalletButton() {
     return (
       <div>
         <p className="text-green-400 font-semibold">Wallet bound successfully ✅</p>
-        {displayPubKey?.isBound && <WalletAddress address={displayPubKey.address} />}
+        <WalletAddress address={displayPubKey.address} />
       </div>
     );
   }
@@ -47,10 +46,8 @@ export const WalletAddress = ({ address }: { address: string }) => {
   const [addressCopied, setAddressCopied] = useState(false);
 
   return (
-    <div className="flex items-center">
-      <Link href={`/blockexplorer/transaction/${address}`}>
-        {address?.substring(0, 6)}...{address?.substring(address.length - 4)}
-      </Link>
+    <div className="flex items-center" style={{ fontSize: "1.12em" }}>
+      {address}
       {addressCopied ? (
         <CheckCircleIcon
           className="ml-1.5 text-xl font-normal text-base-content h-5 w-5 cursor-pointer"
