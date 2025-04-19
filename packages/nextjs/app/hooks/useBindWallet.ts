@@ -1,61 +1,76 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { useAccount, useSignMessage } from "wagmi";
 import { GenerateKeypairResponse } from "~~/types/wallet";
 
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
 export function useBindWallet() {
-  const { address } = useAccount();
+  const { address, isConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
 
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [displayPubKey, setDisplayPubKey] = useState<{ address: string; isBound: boolean }>();
+
+  // SWR fetch on mount
+  const {
+    data: displayPubKey,
+    mutate,
+    isLoading: isFetching,
+    error: keyResErr,
+  } = useSWR<GenerateKeypairResponse>(isConnected && address ? `/api/generate-keypair/${address}` : null, fetcher);
+  useEffect(() => {
+    if (displayPubKey?.isBound) setSuccess(true);
+  }, [displayPubKey]);
 
   const bind = async () => {
     if (!address) return;
+    if (!displayPubKey) {
+      setError(keyResErr?.toString() || "Error retriving bound info");
 
-    setIsLoading(true);
+      return;
+    }
+
     setError(null);
 
+    const { flowEDUAddress: publicKey, isBound, message } = displayPubKey;
+    if (!message) throw new Error("Binding message not retrieved");
+
+    if (isBound) {
+      setSuccess(true);
+      return;
+    }
+
+    setIsLoading(true);
+
     try {
-      const keyRes = await fetch(`/api/generate-keypair/${address}`);
+      const signature = await signMessageAsync({ message });
 
-      if (!keyRes.ok) {
-        throw new Error("Failed to generate keypair");
-      }
-
-      const { flowEDUAddress: publicKey, isBound, message }: GenerateKeypairResponse = await keyRes.json();
-
-      if (!isBound) {
-        if (!message) throw new Error("Binding message not retrieved");
-
-        const signature = await signMessageAsync({ message });
-
-        const res = await fetch("/api/bind-wallet", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userAddress: address, publicKey, signature, message }),
-        });
-
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data?.message || "Failed to bind wallet");
-        }
-      }
-
-      setDisplayPubKey({
-        address: publicKey,
-        isBound: true,
+      const res = await fetch("/api/bind-wallet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userAddress: address, publicKey, signature, message }),
       });
 
+      const result = await res.json();
+      if (!result.success) throw new Error("Binding failed");
+
+      await mutate();
       setSuccess(true);
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Unexpected error");
+      setError(err.message || "Unknown error");
     } finally {
       setIsLoading(false);
     }
   };
 
-  return { bind, isLoading, success, error, displayPubKey };
+  return {
+    bind,
+    isLoading,
+    isFetching,
+    success,
+    error,
+    displayPubKey,
+  };
 }

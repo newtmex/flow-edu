@@ -6,6 +6,9 @@
 [data-theme] {
   background: oklch(var(--b2));
 }
+html {
+  scroll-behavior: smooth;
+}
 
 body {
   min-height: 100vh;
