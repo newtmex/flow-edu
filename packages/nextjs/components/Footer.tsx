@@ -1,16 +1,10 @@
 import React from "react";
 import Link from "next/link";
-import { hardhat } from "viem/chains";
-import { SwitchTheme } from "~~/components/SwitchTheme";
-import { useTargetNetwork } from "~~/hooks/scaffold-eth/useTargetNetwork";
 
 /**
  * Site footer
  */
 export const Footer = () => {
-  const { targetNetwork } = useTargetNetwork();
-  const isLocalNetwork = targetNetwork.id === hardhat.id;
-
   return (
     <footer className="bg-gray-900 border-t border-gray-700 fixed bottom-0 left-0 w-full z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
