@@ -1,14 +1,61 @@
-"use client";
-
-import { BindWalletButton } from "./components/BindWalletButton";
 import { FAQ } from "./components/FAQ";
-import type { NextPage } from "next";
-import { useAccount } from "wagmi";
-import { RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
+import FlowButton from "./components/FlowButton";
+import { Metadata } from "next";
 
-const Home: NextPage = () => {
-  const { address } = useAccount();
+const title = "FlowEDU – Bridge EDU Tokens Seamlessly Across Chains";
+const description =
+  "FlowEDU is a trusted bridge for EDU tokens, enabling fast, secure, and low-fee transfers between BNB Chain, Arbitrum, and EDU Chain.";
 
+export const metadata: Metadata = {
+  title,
+  description,
+  authors: [{ name: "FlowEDU Team" }],
+  keywords: [
+    "Seamless token bridging",
+    "Cross-chain EDU transfers",
+    "Direct BNB Chain to EDU Chain bridge",
+    "Direct EDU Chain to BNB Chain bridge",
+    "Arbitrum, BNB Chain bridge",
+    "Low-fee token bridging",
+    "Secure Web3 bridge",
+    "FlowEDU crypto bridge",
+  ],
+  robots: {
+    index: true,
+    follow: true,
+  },
+  other: {
+    googlebot: "index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1",
+    category: "Web3",
+  },
+  alternates: {
+    canonical: "https://flowedu.gainzswap.xyz",
+  },
+  openGraph: {
+    title,
+    description,
+    url: "https://flowedu.gainzswap.xyz",
+    siteName: "FlowEDU",
+    locale: "en_US",
+    images: [
+      {
+        url: "https://flowedu.gainzswap.xyz/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "FlowEDU – Bridge EDU Tokens Seamlessly Across Chains",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+    images: ["https://flowedu.gainzswap.xyz/og-image.png"],
+  },
+};
+
+export default async function Home() {
   return (
     <>
       <main
@@ -36,14 +83,7 @@ const Home: NextPage = () => {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                {address ? (
-                  <BindWalletButton />
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-sm text-white/70">Connect your wallet to get started.</p>
-                    <RainbowKitCustomConnectButton />
-                  </div>
-                )}
+                <FlowButton />
               </div>
             </div>
 
@@ -64,6 +104,4 @@ const Home: NextPage = () => {
       <FAQ />
     </>
   );
-};
-
-export default Home;
+}
