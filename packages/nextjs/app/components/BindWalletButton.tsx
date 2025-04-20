@@ -8,7 +8,7 @@ import { CheckCircleIcon, DocumentDuplicateIcon } from "@heroicons/react/24/outl
 
 export function BindWalletButton() {
   const { address, isConnected } = useAccount();
-  const { bind, isLoading, isFetching, success, error, displayPubKey } = useBindWallet();
+  const { bind, isLoading, isFetching, success, error, keyRes } = useBindWallet();
 
   if (!isConnected || !address) return null;
 
@@ -16,11 +16,11 @@ export function BindWalletButton() {
     return <p className="text-yellow-300">Checking if your wallet is bound...</p>;
   }
 
-  if (success && displayPubKey?.isBound) {
+  if (success && keyRes?.isBound) {
     return (
       <div>
         <p className="text-green-400 font-semibold">Wallet bound successfully ✅</p>
-        <WalletAddress address={displayPubKey.address} />
+        <WalletAddress address={keyRes.flowEDUAddress} />
       </div>
     );
   }
@@ -34,7 +34,7 @@ export function BindWalletButton() {
         disabled={isLoading}
         className="bg-yellow-300 text-black px-4 py-2 rounded disabled:opacity-50"
       >
-        {isLoading ? "Binding..." : success && displayPubKey?.isBound ? "Wallet Bound ✅" : "Bind Wallet"}
+        {isLoading ? "Binding..." : success && keyRes?.isBound ? "Wallet Bound ✅" : "Bind Wallet"}
       </button>
 
       {error && <p className="text-red-500 text-sm">{error}</p>}

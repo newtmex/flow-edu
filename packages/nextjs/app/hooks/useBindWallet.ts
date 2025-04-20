@@ -15,18 +15,18 @@ export function useBindWallet() {
 
   // SWR fetch on mount
   const {
-    data: displayPubKey,
+    data: keyRes,
     mutate,
     isLoading: isFetching,
     error: keyResErr,
   } = useSWR<GenerateKeypairResponse>(isConnected && address ? `/api/generate-keypair/${address}` : null, fetcher);
   useEffect(() => {
-    if (displayPubKey?.isBound) setSuccess(true);
-  }, [displayPubKey]);
+    if (keyRes?.isBound) setSuccess(true);
+  }, [keyRes]);
 
   const bind = async () => {
     if (!address) return;
-    if (!displayPubKey) {
+    if (!keyRes) {
       setError(keyResErr?.toString() || "Error retriving bound info");
 
       return;
@@ -34,7 +34,7 @@ export function useBindWallet() {
 
     setError(null);
 
-    const { flowEDUAddress: publicKey, isBound, message } = displayPubKey;
+    const { flowEDUAddress: publicKey, isBound, message } = keyRes;
     if (!message) throw new Error("Binding message not retrieved");
 
     if (isBound) {
@@ -71,6 +71,6 @@ export function useBindWallet() {
     isFetching,
     success,
     error,
-    displayPubKey,
+    keyRes,
   };
 }
