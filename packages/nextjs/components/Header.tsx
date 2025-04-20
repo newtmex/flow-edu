@@ -4,10 +4,8 @@ import React, { useCallback, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { hardhat } from "viem/chains";
 import { Bars3Icon } from "@heroicons/react/24/outline";
-import { RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
-import { useOutsideClick, useTargetNetwork } from "~~/hooks/scaffold-eth";
+import { useOutsideClick } from "~~/hooks/scaffold-eth";
 
 type HeaderMenuLink = {
   label: string;
@@ -47,9 +45,6 @@ export const HeaderMenuLinks = () => {
  * Site header
  */
 export const Header = () => {
-  const { targetNetwork } = useTargetNetwork();
-  const isLocalNetwork = targetNetwork.id === hardhat.id;
-
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const burgerMenuRef = useRef<HTMLDivElement>(null);
   useOutsideClick(
@@ -74,7 +69,6 @@ export const Header = () => {
           <Link href="#faq" className="hover:underline">
             FAQ
           </Link>
-          {/* <RainbowKitCustomConnectButton /> */}
         </div>
 
         {/* Mobile Nav */}
@@ -94,7 +88,6 @@ export const Header = () => {
               <li>
                 <Link href="#faq">FAQ</Link>
               </li>
-              <li>{/* <RainbowKitCustomConnectButton /> */}</li>
             </ul>
           )}
         </div>
