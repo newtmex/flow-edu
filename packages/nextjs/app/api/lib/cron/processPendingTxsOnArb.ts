@@ -1,10 +1,12 @@
 // lib/cron/processPendingTxs.ts
-import { bridgeArbitrumToBsc, claimEDUOnArbitrum } from "../bridge";
+import { bridgeArbitrumToBsc, bridgeEDUOnArbToEduChain, claimEDUOnArbitrum } from "../bridge";
 import { normalizeAddresses } from "../drizzleUtils";
 import { acquireLock, releaseLock } from "./lock";
 import { eq } from "drizzle-orm";
 import { db } from "~~/drizzle/db";
 import { ArbTxStatus, txsOnArb, walletBindings } from "~~/drizzle/schema";
+
+const eduTokenAddress = "0xf8173a39c56a554837C4C7f104153A005D284D11";
 
 export async function processPendingTxs() {
   const lockAcquired = await acquireLock();
@@ -37,8 +39,33 @@ export async function processPendingTxs() {
           continue;
         }
 
+        const completeBridging = async () => {
+          if (!tx.arbHash?.length) {
+            console.error(`❌ No arbHash for tx ${tx.originHash}`);
+            return;
+          }
+
+          db.update(txsOnArb)
+            .set({
+              ...tx,
+              status: ArbTxStatus.Handled,
+              updatedAt: new Date(),
+            })
+            .where(eq(txsOnArb.originHash, tx.originHash));
+
+          console.log(`✅ Completed tx ${tx.originHash}`, tx.arbHash);
+        };
+
         if (tx.origin === "BSC") {
-          // Currently no handling logic for BSC
+          if (tx.arbHash?.length) {
+            continue;
+          }
+
+          const toEduHash = await bridgeEDUOnArbToEduChain(tx.to, BigInt(tx.value));
+          if (toEduHash) {
+            tx.arbHash = [toEduHash];
+            await completeBridging();
+          }
         } else if (tx.origin === "EDUChain") {
           if (!tx.arbHash?.length) {
             const claimHash = await claimEDUOnArbitrum(tx.originHash);
@@ -57,20 +84,11 @@ export async function processPendingTxs() {
             })
             .where(eq(txsOnArb.originHash, tx.originHash));
 
-          const eduTokenAddress = "0xf8173a39c56a554837C4C7f104153A005D284D11";
           const toBscHash = await bridgeArbitrumToBsc(tx.to, BigInt(tx.value), eduTokenAddress);
 
           if (toBscHash) {
             tx.arbHash.push(toBscHash);
-            await db
-              .update(txsOnArb)
-              .set({
-                ...tx,
-                status: ArbTxStatus.Handled,
-                updatedAt: new Date(),
-              })
-              .where(eq(txsOnArb.originHash, tx.originHash));
-            console.log(`✅ Tx ${tx.originHash} handled with hash ${toBscHash}`);
+            await completeBridging();
           }
         }
       } catch (err) {

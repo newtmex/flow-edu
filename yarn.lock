@@ -4904,6 +4904,7 @@ __metadata:
   resolution: "@se-2/nextjs@workspace:packages/nextjs"
   dependencies:
     "@arbitrum/sdk": ^4.0.4
+    "@ethersproject/bignumber": ^5.8.0
     "@ethersproject/providers": ^5.8.0
     "@ethersproject/wallet": ^5.8.0
     "@heroicons/react": ~2.1.5
@@ -4924,7 +4925,6 @@ __metadata:
     abitype: 1.0.6
     autoprefixer: ~10.4.20
     bgipfs: ~0.0.12
-    bignumber.js: ^9.2.1
     blo: ~1.2.0
     burner-connector: 0.0.9
     daisyui: 4.12.10
@@ -8167,13 +8167,6 @@ __metadata:
   version: 5.2.2
   resolution: "big.js@npm:5.2.2"
   checksum: b89b6e8419b097a8fb4ed2399a1931a68c612bce3cfd5ca8c214b2d017531191070f990598de2fc6f3f993d91c0f08aa82697717f6b3b8732c9731866d233c9e
-  languageName: node
-  linkType: hard
-
-"bignumber.js@npm:^9.2.1":
-  version: 9.2.1
-  resolution: "bignumber.js@npm:9.2.1"
-  checksum: 992da2b0e075ca94666c033a5d204ca29814dc29762b2fc97cef47ca94b9d31e4720224b38f125730606ee314c6114b508409a6466032ab9d28278dc3df3a43f
   languageName: node
   linkType: hard
 

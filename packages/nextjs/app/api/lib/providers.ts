@@ -1,7 +1,7 @@
 import { ArbitrumNetwork, registerCustomArbitrumNetwork } from "@arbitrum/sdk";
 import { JsonRpcProvider } from "@ethersproject/providers";
 
-const eduChainConfig: ArbitrumNetwork = {
+export const eduChainNetwork: ArbitrumNetwork = {
   name: "EDU Chain",
   chainId: 41923,
   parentChainId: 42161,
@@ -33,7 +33,7 @@ const eduChainConfig: ArbitrumNetwork = {
   isCustom: true,
 };
 
-registerCustomArbitrumNetwork(eduChainConfig);
+registerCustomArbitrumNetwork(eduChainNetwork);
 
 export const eduChainProvider = new JsonRpcProvider({ url: process.env.EDU_RPC!, skipFetchSetup: true });
 export const arbProvider = new JsonRpcProvider(

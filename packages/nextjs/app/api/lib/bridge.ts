@@ -3,8 +3,9 @@ import { arbClient, arbWalletClient, bscClient, bscWalletClient, eduClient, eduW
 import { centralAccount, feeCollectorAddress } from "./config";
 import { LAYERZERO_CHAIN_IDS } from "./constants";
 import { MIN_BOUND_WALLET_GAS, trySendBNBGas, trySendEDUGas } from "./helpers";
-import { arbProvider, eduChainProvider } from "./providers";
-import { ChildToParentMessageStatus, ChildTransactionReceipt } from "@arbitrum/sdk";
+import { arbProvider, eduChainNetwork, eduChainProvider } from "./providers";
+import { ChildToParentMessageStatus, ChildTransactionReceipt, EthBridger } from "@arbitrum/sdk";
+import { BigNumber } from "@ethersproject/bignumber";
 import { Wallet } from "@ethersproject/wallet";
 import { solidityPacked, zeroPadBytes } from "ethers";
 import { Hex, encodePacked, erc20Abi, getAddress, parseEther, parseUnits, zeroAddress } from "viem";
@@ -160,6 +161,38 @@ export const bridgeArbitrumToBsc = async (to: string, amount: bigint, tokenAddre
   });
 
   return hash;
+};
+
+export const bridgeEDUOnArbToEduChain = async (to: string, amount: bigint): Promise<string> => {
+  const ethBridger = new EthBridger(eduChainNetwork);
+  const parentSigner = new Wallet(process.env.PRIVATE_KEY!, arbProvider);
+
+  console.log("Giving allowance to the deployed token to transfer the chain native token");
+  const approvalTransaction = await ethBridger.approveGasToken({
+    parentSigner,
+  });
+
+  const approvalTransactionReceipt = await approvalTransaction.wait();
+  console.log(`Native token approval transaction receipt is: ${approvalTransactionReceipt.transactionHash}`);
+
+  /**
+   * Transfer ether (or native token) from parent chain to a different address on child chain
+   * This convenience method automatically queries for the retryable's max submission cost and forwards the appropriate amount to the specified address on the child chain
+   * by using a retryable ticket instead of a regular deposit.
+   * Arguments required are:
+   * (1) amount: The amount of ETH (or native token) to be transferred
+   * (2) parentSigner: The address on the parent chain of the account transferring ETH (or native token) to the child chain
+   * (3) childProvider: A provider of the child chain
+   * (4) destinationAddress: The address where the ETH will be sent to
+   */
+  const depositTransaction = await ethBridger.depositTo({
+    amount: BigNumber.from(amount),
+    parentSigner,
+    childProvider: eduChainProvider,
+    destinationAddress: to,
+  });
+  const depositTransactionReceipt = await depositTransaction.wait();
+  return depositTransactionReceipt.transactionHash;
 };
 
 export const claimEDUOnArbitrum = async (txHash: string) => {
