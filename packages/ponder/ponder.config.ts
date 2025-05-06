@@ -1,5 +1,7 @@
 import { createConfig } from "ponder";
 import { erc20Abi, http } from "viem";
+import { externalContracts } from "./contracts";
+
 // import deployedContracts from "../nextjs/contracts/deployedContracts";
 // import scaffoldConfig from "../nextjs/scaffold.config";
 
@@ -53,13 +55,18 @@ export default createConfig({
             address: "0xBdEAe1cA48894A1759A8374D63925f21f2Ee2639",
             startBlock: Number(process.env.START_BLOCK_BSC),
         },
+        ArbSys: {
+            network: "EDUChain",
+            abi: externalContracts["41923"].ArbSys.abi,
+            address: externalContracts["41923"].ArbSys.address,
+            startBlock: Number(process.env.START_BLOCK_EDU),
+        },
     },
     blocks: {
         MonitorNativeEDUTransfers: {
             network: "EDUChain",
             interval: 1,
             startBlock: Number(process.env.START_BLOCK_EDU),
-            
         },
     },
 });
