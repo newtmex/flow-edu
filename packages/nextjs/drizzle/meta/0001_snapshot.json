@@ -151,30 +151,22 @@
         "wallet_bindings_flowEDUAddress_unique": {
           "name": "wallet_bindings_flowEDUAddress_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "flowEDUAddress"
-          ]
+          "columns": ["flowEDUAddress"]
         },
         "wallet_bindings_privateKey_unique": {
           "name": "wallet_bindings_privateKey_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "privateKey"
-          ]
+          "columns": ["privateKey"]
         },
         "wallet_bindings_signature_unique": {
           "name": "wallet_bindings_signature_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "signature"
-          ]
+          "columns": ["signature"]
         },
         "wallet_bindings_message_unique": {
           "name": "wallet_bindings_message_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "message"
-          ]
+          "columns": ["message"]
         }
       },
       "policies": {},
@@ -186,19 +178,12 @@
     "public.status": {
       "name": "status",
       "schema": "public",
-      "values": [
-        "pending",
-        "handled",
-        "ignored"
-      ]
+      "values": ["pending", "handled", "ignored"]
     },
     "public.origin": {
       "name": "origin",
       "schema": "public",
-      "values": [
-        "BSC",
-        "EDUChain"
-      ]
+      "values": ["BSC", "EDUChain"]
     }
   },
   "schemas": {},

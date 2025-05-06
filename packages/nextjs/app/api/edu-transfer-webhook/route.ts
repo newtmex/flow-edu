@@ -3,7 +3,7 @@ import { bridgeBscToArbitrum, bridgeEDUChainToArbitrum } from "../lib/bridge";
 import { normalizeAddresses } from "../lib/drizzleUtils";
 import { eq } from "drizzle-orm";
 import { db } from "~~/drizzle/db";
-import { walletBindings } from "~~/drizzle/schema";
+import { txsOnArb, walletBindings } from "~~/drizzle/schema";
 
 export const POST = async (req: NextRequest) => {
   const { from, to, value, txHash, ca, origin } = normalizeAddresses(await req.json());
@@ -14,20 +14,25 @@ export const POST = async (req: NextRequest) => {
 
   if (!boundWallet?.signature) return NextResponse.json({ status: "ignored" });
 
-  let hash: `0x${string}` | null = null;
+  let bridgedInfo: { hash: string; value: bigint } | null = null;
 
   switch (origin) {
     case "BSC":
-      hash = await bridgeBscToArbitrum(boundWallet.privateKey, ca);
+      bridgedInfo = await bridgeBscToArbitrum(boundWallet.privateKey, ca);
       break;
     case "EDUChain":
-      hash = await bridgeEDUChainToArbitrum(boundWallet.privateKey, ca);
+      bridgedInfo = await bridgeEDUChainToArbitrum(boundWallet.privateKey, ca);
       break;
   }
 
-  console.log({ hash, from, value, txHash, origin });
+  if (!bridgedInfo) return NextResponse.json({ status: "ignored" });
 
-  if (!hash) return NextResponse.json({ status: "ignored" });
+  await db.insert(txsOnArb).values({
+    originHash: bridgedInfo.hash,
+    to: boundWallet.userAddress,
+    origin,
+    value: Number(bridgedInfo.value),
+  });
 
   return NextResponse.json({ status: "handled" });
 };

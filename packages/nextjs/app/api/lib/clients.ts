@@ -18,3 +18,17 @@ export const eduWalletClient = createWalletClient({
   }),
   transport: eduTransport,
 });
+
+const arbTransport = http("https://arb1.arbitrum.io/rpc");
+export const arbClient = createPublicClient({ transport: arbTransport });
+export const arbWalletClient = createWalletClient({
+  chain: defineChain({
+    id: 42161,
+    name: "Arbitrum",
+    nativeCurrency: { decimals: 18, name: "ETH", symbol: "ETH" },
+    rpcUrls: {
+      default: { http: [""] },
+    },
+  }),
+  transport: arbTransport,
+});
