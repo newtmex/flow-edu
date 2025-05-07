@@ -22,7 +22,7 @@ export default async function () {
     updateTxStatus: (txHash, status) =>
       db.update(txsOnEduChain).set({ status }).where(eq(txsOnEduChain.txHash, txHash)),
 
-    origin: Origin.BSC,
+    origin: Origin.EDUChain,
     bridgeFn: bridgeEDUChainToArbitrum,
   });
 }
