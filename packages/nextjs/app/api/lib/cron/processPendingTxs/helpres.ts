@@ -42,7 +42,7 @@ export async function handleBridgingFromChain({
         } else {
           const bridgedInfo: Awaited<ReturnType<BridgeFn>> = isAddressEqual(boundWallet.flowEDUAddress, tx.from)
             ? (() => {
-                if (!isAddressEqual(tx.to, centralAccount.address)) return null;
+                if (isAddressEqual(tx.to, centralAccount.address)) return null;
 
                 return {
                   hash: tx.txHash,
