@@ -1,10 +1,9 @@
 import { bridgeArbitrumToBsc, bridgeEDUOnArbToEduChain, claimEDUOnArbitrum } from "../../bridge";
+import { eduTokenAddressOnArb } from "../../constants";
 import { normalizeAddresses } from "../../drizzleUtils";
 import { eq } from "drizzle-orm";
 import { db } from "~~/drizzle/db";
 import { TxStatus, txsOnArb, walletBindings } from "~~/drizzle/schema";
-
-const eduTokenAddress = "0xf8173a39c56a554837C4C7f104153A005D284D11";
 
 export default async function () {
   const pendingTxs = await db
@@ -76,7 +75,7 @@ export default async function () {
           })
           .where(eq(txsOnArb.originHash, tx.originHash));
 
-        const toBscHash = await bridgeArbitrumToBsc(tx.to, BigInt(tx.value), eduTokenAddress);
+        const toBscHash = await bridgeArbitrumToBsc(tx.to, BigInt(tx.value), eduTokenAddressOnArb);
 
         if (toBscHash) {
           tx.arbHash.push(toBscHash);

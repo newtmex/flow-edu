@@ -10,3 +10,5 @@ export const LAYERZERO_CHAIN_IDS = {
   FANTOM: 112,
   BASE: 184,
 } as const;
+
+export const eduTokenAddressOnArb = "0xf8173a39c56a554837C4C7f104153A005D284D11";
