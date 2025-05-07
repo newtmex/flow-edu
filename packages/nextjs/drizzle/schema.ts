@@ -1,4 +1,4 @@
-import { bigint, json, pgEnum, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { bigint, json, numeric, pgEnum, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
 
 export const walletBindings = pgTable("wallet_bindings", {
   userAddress: text().primaryKey(),
@@ -32,7 +32,7 @@ export const txsOnArb = pgTable("txs_on_arb", {
   originHash: varchar({ length: 66 }).primaryKey(),
   arbHash: json().$type<string[]>().default([]),
   to: varchar({ length: 42 }).notNull(),
-  value: bigint({ mode: "number" }).notNull(),
+  value: numeric({ precision: 78, scale: 0 }).notNull(),
   origin: originEnum().notNull(), // "BSC" | "EDUChain"
   status: arbTxStatusEnum().default(ArbTxStatus.Pending), // pending | handled | ignored | failed
   createdAt: timestamp("created_at").defaultNow().notNull(),

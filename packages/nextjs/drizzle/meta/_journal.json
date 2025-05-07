@@ -15,6 +15,13 @@
       "when": 1746530575456,
       "tag": "0001_tough_meggan",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1746542330603,
+      "tag": "0002_melodic_lester",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "txs_on_arb" ALTER COLUMN "value" SET DATA TYPE numeric(78, 0);

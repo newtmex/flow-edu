@@ -31,7 +31,7 @@ export const POST = async (req: NextRequest) => {
     originHash: bridgedInfo.hash,
     to: boundWallet.userAddress,
     origin,
-    value: Number(bridgedInfo.value),
+    value: bridgedInfo.value.toString(),
   });
 
   return NextResponse.json({ status: "handled" });
