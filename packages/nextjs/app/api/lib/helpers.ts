@@ -4,7 +4,7 @@ import { Address, parseEther } from "viem";
 
 // Config
 export const MIN_BOUND_WALLET_GAS = parseEther("0.004");
-const MAX_GAS_SUBSIDY = parseEther("0.012");
+const MAX_GAS_SUBSIDY = parseEther("0.00012");
 
 export const trySendBNBGas = async (to: Address) => {
   const balance = await bscClient.getBalance({ address: to });
