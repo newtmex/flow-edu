@@ -1,7 +1,7 @@
 export const externalContracts = {
     56: {
         ProxyOFTV2: {
-            address: "0x201263cea08e8f1d6e2fdd1fd2ca44bf6145e2af",
+            address: "0x67fb304001aD03C282266B965b51E97Aa54A2FAB",
             abi: [
                 {
                     inputs: [
