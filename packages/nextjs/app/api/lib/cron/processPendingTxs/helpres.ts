@@ -1,4 +1,6 @@
-import { eq } from "drizzle-orm";
+import { centralAccount } from "../../config";
+import { eq, or } from "drizzle-orm";
+import { isAddressEqual } from "viem";
 import { db } from "~~/drizzle/db";
 import { Origin, TxStatus, txsOnArb, walletBindings } from "~~/drizzle/schema";
 
@@ -6,10 +8,12 @@ import { Origin, TxStatus, txsOnArb, walletBindings } from "~~/drizzle/schema";
 type PendingTx = {
   txHash: string;
   to: string;
+  value: string | bigint;
+  from: string;
   ca: string | null;
 };
 
-type BridgeFn = (privateKey: string, ca: string | null) => Promise<null | { hash: string; value: bigint }>;
+type BridgeFn = (privateKey: string, ca: string | null) => Promise<null | { hash: string; value: bigint | string }>;
 
 export async function handleBridgingFromChain({
   getPendingTxs,
@@ -28,7 +32,7 @@ export async function handleBridgingFromChain({
     await Promise.all(
       pending.map(async tx => {
         const boundWallet = await db.query.walletBindings.findFirst({
-          where: eq(walletBindings.flowEDUAddress, tx.to),
+          where: or(eq(walletBindings.flowEDUAddress, tx.to), eq(walletBindings.flowEDUAddress, tx.from)),
         });
 
         let newStatus = TxStatus.Pending;
@@ -36,7 +40,16 @@ export async function handleBridgingFromChain({
         if (!boundWallet?.signature) {
           newStatus = TxStatus.Ignored;
         } else {
-          const bridgedInfo = await bridgeFn(boundWallet.privateKey, tx.ca);
+          const bridgedInfo: Awaited<ReturnType<BridgeFn>> = isAddressEqual(boundWallet.flowEDUAddress, tx.from)
+            ? (() => {
+                if (!isAddressEqual(tx.to, centralAccount.address)) return null;
+
+                return {
+                  hash: tx.txHash,
+                  value: tx.value,
+                };
+              })()
+            : await bridgeFn(boundWallet.privateKey, tx.ca);
 
           if (bridgedInfo) {
             await db.insert(txsOnArb).values({

@@ -8,7 +8,13 @@ export default async function () {
   await handleBridgingFromChain({
     getPendingTxs: () =>
       db
-        .select({ txHash: txsOnBsc.txHash, to: txsOnBsc.to, ca: txsOnBsc.ca })
+        .select({
+          txHash: txsOnBsc.txHash,
+          to: txsOnBsc.to,
+          ca: txsOnBsc.ca,
+          from: txsOnBsc.from,
+          value: txsOnBsc.value,
+        })
         .from(txsOnBsc)
         .where(eq(txsOnBsc.status, TxStatus.Pending))
         .limit(10),
