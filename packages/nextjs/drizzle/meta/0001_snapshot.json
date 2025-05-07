@@ -1,5 +1,5 @@
 {
-  "id": "2bcd8596-d363-4f12-ace4-a884c200f683",
+  "id": "f6fb7d57-54af-431f-86e8-b914d9651a08",
   "prevId": "2e5d518a-e1ff-411a-879d-d0c1d2d38b4a",
   "version": "7",
   "dialect": "postgresql",
@@ -54,7 +54,7 @@
         },
         "value": {
           "name": "value",
-          "type": "bigint",
+          "type": "numeric(78, 0)",
           "primaryKey": false,
           "notNull": true
         },
@@ -82,6 +82,136 @@
         },
         "updated_at": {
           "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.txs_on_bsc": {
+      "name": "txs_on_bsc",
+      "schema": "",
+      "columns": {
+        "txHash": {
+          "name": "txHash",
+          "type": "varchar(66)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "from": {
+          "name": "from",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "to": {
+          "name": "to",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ca": {
+          "name": "ca",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "value": {
+          "name": "value",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'pending'"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.txs_on_edu_chain": {
+      "name": "txs_on_edu_chain",
+      "schema": "",
+      "columns": {
+        "txHash": {
+          "name": "txHash",
+          "type": "varchar(66)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "from": {
+          "name": "from",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "to": {
+          "name": "to",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ca": {
+          "name": "ca",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "value": {
+          "name": "value",
+          "type": "numeric(78, 0)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'pending'"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
@@ -175,15 +305,15 @@
     }
   },
   "enums": {
-    "public.status": {
-      "name": "status",
-      "schema": "public",
-      "values": ["pending", "handled", "ignored"]
-    },
     "public.origin": {
       "name": "origin",
       "schema": "public",
       "values": ["BSC", "EDUChain"]
+    },
+    "public.status": {
+      "name": "status",
+      "schema": "public",
+      "values": ["pending", "handled", "ignored", "failed"]
     }
   },
   "schemas": {},

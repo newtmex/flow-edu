@@ -14,7 +14,9 @@ import externalContracts from "~~/contracts/externalContracts";
 
 const FEE_BPS = 30n; // 0.3% fee
 
-export const bridgeBscToArbitrum = async (encryptedPrivKey: string, tokenAddress: string) => {
+export const bridgeBscToArbitrum = async (encryptedPrivKey: string, tokenAddress: string | null) => {
+  if (!tokenAddress) return null;
+
   const boundWallet = privateKeyToAccount(Encryption.new().decryptCipherText(encryptedPrivKey) as Hex);
 
   const [balance, decimals] = await Promise.all([
