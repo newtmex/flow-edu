@@ -1,7 +1,7 @@
 import { createPublicClient, createWalletClient, defineChain, http } from "viem";
 import { bsc } from "viem/chains";
 
-const bscTransport = http("bsc-dataseed4.binance.org");
+const bscTransport = http("https://bnb.rpc.subquery.network/public");
 export const bscClient = createPublicClient({ transport: bscTransport });
 export const bscWalletClient = createWalletClient({ chain: bsc, transport: bscTransport });
 
