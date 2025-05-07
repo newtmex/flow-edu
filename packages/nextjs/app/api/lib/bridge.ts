@@ -40,13 +40,21 @@ export const bridgeBscToArbitrum = async (encryptedPrivKey: string, tokenAddress
 
   await trySendBNBGas(boundWallet.address);
 
-  await bscWalletClient.writeContract({
-    account: boundWallet,
-    abi: erc20Abi,
+  const allowance = await bscClient.readContract({
     address: tokenAddress,
-    functionName: "approve",
-    args: [proxyOFT.address, amountToBridge],
+    abi: erc20Abi,
+    functionName: "allowance",
+    args: [boundWallet.address, proxyOFT.address],
   });
+  if (allowance < amountToBridge) {
+    await bscWalletClient.writeContract({
+      account: boundWallet,
+      abi: erc20Abi,
+      address: tokenAddress,
+      functionName: "approve",
+      args: [proxyOFT.address, 2n ** 251n],
+    });
+  }
 
   const adapterParams = encodePacked(
     ["uint16", "uint256", "uint256", "address"],
