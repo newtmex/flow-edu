@@ -249,9 +249,10 @@ export const bridgeEDUChainToArbitrum = async (encryptedPrivKey: string, tokenAd
   ]);
 
   if (balance < parseUnits("1", decimals)) return null;
-  if (tokenAddress) throw new Error("ERC20 not supported yet on EDU Chain");
-
-  await trySendEDUGas(boundWallet.address);
+  if (tokenAddress) {
+    throw new Error("ERC20 not supported yet on EDU Chain");
+    await trySendEDUGas(boundWallet.address);
+  }
 
   const fee = (balance * FEE_BPS) / 10_000n;
   let amountToBridge = balance - fee - MIN_BOUND_WALLET_GAS;
