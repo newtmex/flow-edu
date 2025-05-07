@@ -11,9 +11,9 @@ export async function processPendingTxs() {
 
   try {
     const results = await Promise.allSettled([
-      processPendingTxsOnBsc,
-      processPendingTxsOnEduChain,
-      processPendingTxsOnArb,
+      processPendingTxsOnBsc(),
+      processPendingTxsOnEduChain(),
+      processPendingTxsOnArb(),
     ]);
 
     results.forEach(result => {
