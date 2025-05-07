@@ -55,6 +55,12 @@ export default createConfig({
             address: "0xBdEAe1cA48894A1759A8374D63925f21f2Ee2639",
             startBlock: Number(process.env.START_BLOCK_BSC),
         },
+        ProxyOFTV2: {
+            network: "BSC",
+            abi: externalContracts["56"].ProxyOFTV2.abi,
+            address: externalContracts["56"].ProxyOFTV2.address,
+            startBlock: Number(process.env.START_BLOCK_BSC),
+        },
         ArbSys: {
             network: "EDUChain",
             abi: externalContracts["41923"].ArbSys.abi,

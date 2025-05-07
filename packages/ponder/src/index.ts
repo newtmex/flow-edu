@@ -14,6 +14,32 @@ ponder.on("EDUCoinBSC:Transfer", async ({ event }) => {
     });
 });
 
+ponder.on("ProxyOFTV2:SendToChain", async ({ event }) => {
+    const { _amount, _from, _toAddress } = event.args;
+
+    await notifyNextApi({
+        from: event.transaction.from,
+        to: _toAddress,
+        value: _amount.toString(),
+        txHash: event.transaction.hash,
+        ca: null,
+        origin: "BSC",
+    });
+});
+
+ponder.on("ArbSys:L2ToL1Tx", async ({ event }) => {
+    const { transaction, args } = event;
+    
+    await notifyNextApi({
+        from: transaction.from,
+        to: args.destination,
+        value: args.callvalue.toString(),
+        txHash: transaction.hash,
+        ca: null,
+        origin: "EDUChain",
+    });
+});
+
 ponder.on(
     "MonitorNativeEDUTransfers:block",
     async ({ event, context: { client } }) => {
