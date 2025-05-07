@@ -1,18 +1,73 @@
 import Encryption from "./Encryption";
 import { arbClient, arbWalletClient, bscClient, bscWalletClient, eduClient, eduWalletClient } from "./clients";
 import { centralAccount, feeCollectorAddress } from "./config";
-import { LAYERZERO_CHAIN_IDS } from "./constants";
+import { LAYERZERO_CHAIN_IDS, eduTokenAddressOnArb } from "./constants";
 import { MIN_BOUND_WALLET_GAS, trySendBNBGas, trySendEDUGas } from "./helpers";
 import { arbProvider, eduChainNetwork, eduChainProvider } from "./providers";
 import { ChildToParentMessageStatus, ChildTransactionReceipt, EthBridger } from "@arbitrum/sdk";
 import { BigNumber } from "@ethersproject/bignumber";
 import { Wallet } from "@ethersproject/wallet";
 import { solidityPacked, zeroPadBytes } from "ethers";
-import { Hex, encodePacked, erc20Abi, getAddress, parseEther, parseUnits, zeroAddress } from "viem";
+import {
+  type Hex,
+  type PrivateKeyAccount,
+  type PublicClient,
+  encodePacked,
+  erc20Abi,
+  getAddress,
+  parseEther,
+  parseUnits,
+  zeroAddress,
+} from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import externalContracts from "~~/contracts/externalContracts";
 
 const FEE_BPS = 30n; // 0.3% fee
+
+export async function ensureERC20AllowanceAndBalance({
+  publicClient,
+  walletClient,
+  tokenAddress,
+  account,
+  spenderAddress,
+  amount,
+}: {
+  publicClient: PublicClient;
+  walletClient: typeof arbWalletClient | typeof eduWalletClient | typeof bscWalletClient;
+  tokenAddress: string;
+  account: PrivateKeyAccount;
+  spenderAddress: string;
+  amount: bigint;
+}) {
+  const [balance, allowance] = await Promise.all([
+    publicClient.readContract({
+      address: tokenAddress,
+      abi: erc20Abi,
+      functionName: "balanceOf",
+      args: [account.address],
+    }) as Promise<bigint>,
+    publicClient.readContract({
+      address: tokenAddress,
+      abi: erc20Abi,
+      functionName: "allowance",
+      args: [account.address, spenderAddress],
+    }) as Promise<bigint>,
+  ]);
+
+  if (balance < amount) {
+    throw new Error(`Insufficient balance: ${balance} < ${amount}`);
+  }
+
+  if (allowance < amount) {
+    await walletClient.writeContract({
+      account,
+      address: tokenAddress,
+      abi: erc20Abi,
+      functionName: "approve",
+      args: [spenderAddress, 2n ** 251n], // large allowance
+    });
+  }
+}
 
 export const bridgeBscToArbitrum = async (encryptedPrivKey: string, tokenAddress: string | null) => {
   if (!tokenAddress) return null;
@@ -63,11 +118,13 @@ export const bridgeBscToArbitrum = async (encryptedPrivKey: string, tokenAddress
     [2, 500_000n, 0n, centralAccount.address],
   );
 
+  const centralAccountAddressBytes32 = zeroPadBytes(getAddress(centralAccount.address), 32);
+
   const [nativeFee] = await bscClient.readContract({
     abi: proxyOFT.abi,
     address: proxyOFT.address,
     functionName: "estimateSendFee",
-    args: [dstChainId, centralAccount.address, amountToBridge, true, adapterParams],
+    args: [dstChainId, centralAccountAddressBytes32, amountToBridge, false, adapterParams],
   });
 
   const txHash = await bscWalletClient.writeContract({
@@ -78,7 +135,7 @@ export const bridgeBscToArbitrum = async (encryptedPrivKey: string, tokenAddress
     args: [
       boundWallet.address,
       dstChainId,
-      centralAccount.address,
+      centralAccountAddressBytes32,
       amountToBridge,
       {
         refundAddress: boundWallet.address,
@@ -103,32 +160,14 @@ export const bridgeBscToArbitrum = async (encryptedPrivKey: string, tokenAddress
 export const bridgeArbitrumToBsc = async (to: string, amount: bigint, tokenAddress: string): Promise<string> => {
   const wrapper = externalContracts["42161"].OFTWrapper;
 
-  const [balance, allowance] = await Promise.all([
-    arbClient.readContract({
-      address: tokenAddress,
-      abi: erc20Abi,
-      functionName: "balanceOf",
-      args: [centralAccount.address],
-    }),
-    arbClient.readContract({
-      address: tokenAddress,
-      abi: erc20Abi,
-      functionName: "allowance",
-      args: [centralAccount.address, wrapper.address],
-    }),
-  ]);
-
-  if (balance < amount) throw new Error(`Insufficient balance`);
-
-  if (allowance < amount) {
-    await arbWalletClient.writeContract({
-      account: centralAccount,
-      address: tokenAddress,
-      abi: erc20Abi,
-      functionName: "approve",
-      args: [wrapper.address, 2n ** 251n],
-    });
-  }
+  await ensureERC20AllowanceAndBalance({
+    publicClient: arbClient,
+    account: centralAccount,
+    amount,
+    spenderAddress: wrapper.address,
+    tokenAddress,
+    walletClient: arbWalletClient,
+  });
 
   const toBytes32 = zeroPadBytes(getAddress(to), 32);
   const adapterParams = solidityPacked(
@@ -177,13 +216,14 @@ export const bridgeEDUOnArbToEduChain = async (to: string, amount: bigint): Prom
   const ethBridger = new EthBridger(eduChainNetwork);
   const parentSigner = new Wallet(process.env.PRIVATE_KEY!, arbProvider);
 
-  console.log("Giving allowance to the deployed token to transfer the chain native token");
-  const approvalTransaction = await ethBridger.approveGasToken({
-    parentSigner,
+  await ensureERC20AllowanceAndBalance({
+    publicClient: arbClient,
+    account: centralAccount,
+    amount,
+    spenderAddress: ethBridger.childNetwork.ethBridge.inbox,
+    tokenAddress: eduTokenAddressOnArb,
+    walletClient: arbWalletClient,
   });
-
-  const approvalTransactionReceipt = await approvalTransaction.wait();
-  console.log(`Native token approval transaction receipt is: ${approvalTransactionReceipt.transactionHash}`);
 
   /**
    * Transfer ether (or native token) from parent chain to a different address on child chain
