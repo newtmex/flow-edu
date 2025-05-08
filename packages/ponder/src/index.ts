@@ -1,5 +1,80 @@
 import { ponder } from "ponder:registry";
 import { notifyNextApi } from "./helpers";
+import { decodeFunctionData } from "viem";
+
+// ## ARB
+
+// Send EDU to EDUChain txs
+ponder.on(
+    "ERC20Inbox:InboxMessageDelivered",
+    async ({
+        event,
+        context: {
+            contracts: { ERC20Inbox },
+        },
+    }) => {
+        const {
+            args: [to, value],
+        } = decodeFunctionData({
+            abi: ERC20Inbox.abi,
+            data: event.transaction.input,
+        });
+        if (!to || !value) return;
+
+        await notifyNextApi({
+            from: event.transaction.from,
+            to: to.toString(),
+            value: value.toString(),
+            txHash: event.transaction.hash,
+            ca: event.transaction.to,
+            origin: "Arbitrum",
+        });
+    }
+);
+
+// EDU Claim txs
+ponder.on(
+    "ERC20Outbox:OutBoxTransactionExecuted",
+    async ({
+        event,
+        context: {
+            contracts: { ERC20Outbox },
+        },
+    }) => {
+        const {
+            args: [, , , to, , , , value],
+        } = decodeFunctionData({
+            abi: ERC20Outbox.abi,
+            data: event.transaction.input,
+        });
+        if (!to || !value) return;
+
+        await notifyNextApi({
+            from: event.transaction.from,
+            to: to.toString(),
+            value: value.toString(),
+            txHash: event.transaction.hash,
+            ca: event.transaction.to,
+            origin: "Arbitrum",
+        });
+    }
+);
+
+// Send EDU to BSC
+ponder.on("EDUOFTV2:SendToChain", async ({ event }) => {
+    const { _amount, _from, _toAddress } = event.args;
+
+    await notifyNextApi({
+        from: event.transaction.from,
+        to: _toAddress,
+        value: _amount.toString(),
+        txHash: event.transaction.hash,
+        ca: event.transaction.to,
+        origin: "Arbitrum",
+    });
+});
+
+// ## BSC
 
 ponder.on("EDUCoinBSC:Transfer", async ({ event }) => {
     const { from, to, value } = event.args;
@@ -27,9 +102,11 @@ ponder.on("ProxyOFTV2:SendToChain", async ({ event }) => {
     });
 });
 
+// ## EDU
+
 ponder.on("ArbSys:L2ToL1Tx", async ({ event }) => {
     const { transaction, args } = event;
-    
+
     await notifyNextApi({
         from: transaction.from,
         to: args.destination,
