@@ -5,6 +5,7 @@ import { LAYERZERO_CHAIN_IDS, eduTokenAddressOnArb } from "./constants";
 import { MIN_BOUND_WALLET_GAS, trySendBNBGas, trySendEDUGas } from "./helpers";
 import { arbProvider, eduChainNetwork, eduChainProvider } from "./providers";
 import { ChildToParentMessageStatus, ChildTransactionReceipt, EthBridger } from "@arbitrum/sdk";
+import { ParentToChildMessageCreator } from "@arbitrum/sdk/dist/lib/message/ParentToChildMessageCreator";
 import { BigNumber } from "@ethersproject/bignumber";
 import { Wallet } from "@ethersproject/wallet";
 import { solidityPacked, zeroPadBytes } from "ethers";
@@ -225,24 +226,41 @@ export const bridgeEDUOnArbToEduChain = async (to: string, amount: bigint): Prom
     walletClient: arbWalletClient,
   });
 
-  /**
-   * Transfer ether (or native token) from parent chain to a different address on child chain
-   * This convenience method automatically queries for the retryable's max submission cost and forwards the appropriate amount to the specified address on the child chain
-   * by using a retryable ticket instead of a regular deposit.
-   * Arguments required are:
-   * (1) amount: The amount of ETH (or native token) to be transferred
-   * (2) parentSigner: The address on the parent chain of the account transferring ETH (or native token) to the child chain
-   * (3) childProvider: A provider of the child chain
-   * (4) destinationAddress: The address where the ETH will be sent to
-   */
-  const depositTransaction = await ethBridger.depositTo({
-    amount: BigNumber.from(amount),
-    parentSigner,
-    childProvider: eduChainProvider,
-    destinationAddress: to,
+  const sendAmount = BigNumber.from(amount);
+
+  const { l2CallValue, maxFeePerGas, maxSubmissionCost, from, gasLimit, deposit, data } = (
+    await ParentToChildMessageCreator.getTicketCreationRequest(
+      {
+        data: "0x",
+        from: parentSigner.address,
+        l2CallValue: sendAmount,
+        to,
+        callValueRefundAddress: parentSigner.address,
+        excessFeeRefundAddress: parentSigner.address,
+      },
+      arbProvider,
+      eduChainProvider,
+    )
+  ).retryableData;
+  const tokenTotalFeeAmount = deposit.add(l2CallValue).add(maxSubmissionCost).add(gasLimit.mul(maxFeePerGas));
+
+  return await arbWalletClient.writeContract({
+    account: centralAccount,
+    address: externalContracts["42161"].ERC20Inbox.address,
+    abi: externalContracts["42161"].ERC20Inbox.abi,
+    functionName: "createRetryableTicket",
+    args: [
+      to,
+      l2CallValue.toBigInt(),
+      maxSubmissionCost.toBigInt(),
+      from,
+      from,
+      gasLimit.toBigInt(),
+      maxFeePerGas.toBigInt(),
+      tokenTotalFeeAmount.toBigInt(),
+      data,
+    ],
   });
-  const depositTransactionReceipt = await depositTransaction.wait();
-  return depositTransactionReceipt.transactionHash;
 };
 
 export const claimEDUOnArbitrum = async (txHash: string) => {
