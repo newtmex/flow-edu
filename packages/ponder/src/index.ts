@@ -1,6 +1,6 @@
 import { ponder } from "ponder:registry";
-import { notifyNextApi } from "./helpers";
-import { decodeFunctionData } from "viem";
+import { notifyNextApi, processTxsCron } from "./helpers";
+import { decodeFunctionData, isAddressEqual } from "viem";
 
 // ## ARB
 
@@ -13,6 +13,12 @@ ponder.on(
             contracts: { ERC20Inbox },
         },
     }) => {
+        if (
+            !event.transaction.to ||
+            !isAddressEqual(event.transaction.to, ERC20Inbox.address)
+        )
+            return;
+
         const {
             args: [to, value],
         } = decodeFunctionData({
@@ -41,6 +47,12 @@ ponder.on(
             contracts: { ERC20Outbox },
         },
     }) => {
+        if (
+            !event.transaction.to ||
+            !isAddressEqual(event.transaction.to, ERC20Outbox.address)
+        )
+            return;
+
         const {
             args: [, , , to, , , , value],
         } = decodeFunctionData({
@@ -147,16 +159,6 @@ ponder.on(
             });
         }
 
-        // Execute process arb txs cron
-        try {
-            fetch(`${process.env.NEXT_API_URL}/api/cron/process-txs`, {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-            });
-        } catch (err) {
-            console.error(`Failed to notify Next.js: ${err}`);
-        }
+       await processTxsCron()
     }
 );

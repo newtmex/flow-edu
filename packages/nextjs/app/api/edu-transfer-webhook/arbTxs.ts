@@ -3,9 +3,9 @@ import { and, eq } from "drizzle-orm";
 import { isAddressEqual } from "viem";
 import externalContracts from "~~/contracts/externalContracts";
 import { db } from "~~/drizzle/db";
-import { Origin, TxStatus, txsOnArb } from "~~/drizzle/schema";
+import { Origin, TxStatus, txsOnArb, walletBindings } from "~~/drizzle/schema";
 
-const {
+export const {
   ERC20Outbox: { address: outbox },
   ERC20Inbox: { address: inbox },
 } = externalContracts["42161"];
@@ -39,11 +39,13 @@ async function markHandled(originHash: string, newHashes: string[]) {
     .where(eq(txsOnArb.originHash, originHash));
 }
 
+const isOutbox = (ca: string) => isAddressEqual(ca, outbox);
+
 // 3) Configuration for each “ca” check
 const handlers = [
   {
     // EDUChain → BSC claim arrives on the Outbox
-    matchCa: (ca: string) => isAddressEqual(ca, outbox),
+    matchCa: isOutbox,
     origin: Origin.EDUChain,
     computeNewHashes: (row: Match, txHash: string) => (row.arbHash?.length ? row.arbHash : [txHash]),
   },
@@ -70,18 +72,30 @@ const handlers = [
 
 // 4) Main logic
 export default async function handleArbTxs(ca: string, txHash: string, to: string, value: string) {
+  const boundWallet = await db
+    .select({ signature: walletBindings.signature, userAddress: walletBindings.userAddress })
+    .from(walletBindings)
+    .where(eq(walletBindings.userAddress, to))
+    .limit(1)
+    .then(r => r.at(0));
+  if (!isOutbox(ca) && !boundWallet) return;
+
   for (const h of handlers) {
     if (!h.matchCa(ca)) continue;
 
-    const row = await findArbRow(h.origin, to, value);
-    const newHashes = h.computeNewHashes(row, txHash);
+    try {
+      const row = await findArbRow(h.origin, to, value);
+      const newHashes = h.computeNewHashes(row, txHash);
 
-    // only write if hashes changed
-    if (newHashes.length !== (row.arbHash?.length || 0) || newHashes.some((h, i) => row.arbHash?.[i] !== h)) {
-      await markHandled(row.originHash, newHashes);
+      // only write if hashes changed
+      if (newHashes.length !== (row.arbHash?.length || 0) || newHashes.some((h, i) => row.arbHash?.[i] !== h)) {
+        await markHandled(row.originHash, newHashes);
+      }
+    } catch (error) {
+      console.log("Error on hash", txHash, error);
+    } finally {
+      // once handled, stop checking other handlers
+      break;
     }
-
-    // once handled, stop checking other handlers
-    break;
   }
 }

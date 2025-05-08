@@ -19,4 +19,20 @@ export const notifyNextApi = async (data: {
     } catch (err) {
         console.error(`Failed to notify Next.js: ${err}`);
     }
+
+    // await processTxsCron()
+};
+
+export const processTxsCron = async () => {
+    // Execute process arb txs cron
+    try {
+        fetch(`${process.env.NEXT_API_URL}/api/cron/process-txs`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+    } catch (err) {
+        console.error(`Failed to notify Next.js: ${err}`);
+    }
 };
