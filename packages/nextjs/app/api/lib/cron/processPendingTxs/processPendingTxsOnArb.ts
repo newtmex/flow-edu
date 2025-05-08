@@ -3,87 +3,87 @@ import { eduTokenAddressOnArb } from "../../constants";
 import { normalizeAddresses } from "../../drizzleUtils";
 import { eq } from "drizzle-orm";
 import { db } from "~~/drizzle/db";
-import { TxStatus, txsOnArb, walletBindings } from "~~/drizzle/schema";
+import { Origin, TxStatus, txsOnArb, walletBindings } from "~~/drizzle/schema";
 
+// fetch up to N pending txs
+async function fetchPending(limit = 10) {
+  const rows = await db.select().from(txsOnArb).where(eq(txsOnArb.status, TxStatus.Pending)).limit(limit);
+
+  return normalizeAddresses(rows);
+}
+
+// update only status & arbHash & timestamp
+async function updateStatus(originHash: string, status: TxStatus, arbHash: string[] | null = null) {
+  await db
+    .update(txsOnArb)
+    .set({
+      status,
+      arbHash: arbHash ?? [],
+      updatedAt: new Date(),
+    })
+    .where(eq(txsOnArb.originHash, originHash));
+}
+
+// core per-tx processing
+async function processTx(tx: Awaited<ReturnType<typeof fetchPending>>[0]) {
+  // find bound wallet
+  const wallet = await db.query.walletBindings.findFirst({
+    where: eq(walletBindings.userAddress, tx.to),
+  });
+
+  if (!wallet?.signature) {
+    console.info(`Ignoring unbound tx ${tx.originHash}`);
+    return updateStatus(tx.originHash, TxStatus.Ignored, tx.arbHash);
+  }
+
+  // ensure we have at least one arbHash before marking Handled
+  const recordHandled = async (hashes: string[]) => {
+    console.info(`✅ Completed ${tx.originHash}:`, hashes);
+    await updateStatus(tx.originHash, TxStatus.Handled, hashes);
+  };
+
+  // branch by origin
+  if (tx.origin === Origin.BSC) {
+    if (tx.arbHash?.length) return; // already bridged
+
+    const toEduHash = await bridgeEDUOnArbToEduChain(tx.to, BigInt(tx.value));
+    if (toEduHash) {
+      await recordHandled([toEduHash]);
+    }
+  } else if (tx.origin === Origin.EDUChain) {
+    // step 1: ensure claim on Arbitrum
+    const hashes = tx.arbHash ?? [];
+    if (!hashes.length) {
+      const claimHash = await claimEDUOnArbitrum(tx.originHash);
+      if (!claimHash) return;
+      hashes.push(claimHash);
+      await updateStatus(tx.originHash, TxStatus.Pending, hashes);
+    }
+
+    // step 2: bridge onward to BSC
+    const toBscHash = await bridgeArbitrumToBsc(tx.to, BigInt(tx.value), eduTokenAddressOnArb);
+    if (toBscHash) {
+      hashes.push(toBscHash);
+      await recordHandled(hashes);
+    }
+  }
+}
+
+// main loop
 export default async function () {
-  const pendingTxs = await db
-    .select()
-    .from(txsOnArb)
-    .where(eq(txsOnArb.status, TxStatus.Pending))
-    .limit(10)
-    .then(r => normalizeAddresses(r));
+  while (true) {
+    const pending = await fetchPending();
+    if (!pending.length) break;
 
-  for (const tx of pendingTxs) {
-    try {
-      const boundWallet = await db.query.walletBindings.findFirst({
-        where: eq(walletBindings.userAddress, tx.to),
-      });
-
-      if (!boundWallet?.signature) {
-        await db
-          .update(txsOnArb)
-          .set({
-            status: TxStatus.Ignored,
-            updatedAt: new Date(),
-          })
-          .where(eq(txsOnArb.originHash, tx.originHash));
-        continue;
+    // process in sequence (to simplify per-tx db transactions/logging)
+    for (const tx of pending) {
+      try {
+        await processTx(tx);
+      } catch (err) {
+        console.error(`❌ Error processing ${tx.originHash}`, err);
+        // optionally mark failed
+        await updateStatus(tx.originHash, TxStatus.Failed);
       }
-
-      const completeBridging = async () => {
-        if (!tx.arbHash?.length) {
-          console.error(`❌ No arbHash for tx ${tx.originHash}`);
-          return;
-        }
-
-        db.update(txsOnArb)
-          .set({
-            ...tx,
-            status: TxStatus.Handled,
-            updatedAt: new Date(),
-          })
-          .where(eq(txsOnArb.originHash, tx.originHash));
-
-        console.log(`✅ Completed tx ${tx.originHash}`, tx.arbHash);
-      };
-
-      if (tx.origin === "BSC") {
-        if (tx.arbHash?.length) {
-          continue;
-        }
-
-        const toEduHash = await bridgeEDUOnArbToEduChain(tx.to, BigInt(tx.value));
-        if (toEduHash) {
-          tx.arbHash = [toEduHash];
-          await completeBridging();
-        }
-      } else if (tx.origin === "EDUChain") {
-        if (!tx.arbHash?.length) {
-          const claimHash = await claimEDUOnArbitrum(tx.originHash);
-          if (!claimHash) {
-            continue;
-          }
-
-          tx.arbHash = [claimHash];
-        }
-
-        await db
-          .update(txsOnArb)
-          .set({
-            ...tx,
-            updatedAt: new Date(),
-          })
-          .where(eq(txsOnArb.originHash, tx.originHash));
-
-        const toBscHash = await bridgeArbitrumToBsc(tx.to, BigInt(tx.value), eduTokenAddressOnArb);
-
-        if (toBscHash) {
-          tx.arbHash.push(toBscHash);
-          await completeBridging();
-        }
-      }
-    } catch (err) {
-      console.error(`❌ Error on tx ${tx.originHash}:`, err);
     }
   }
 }
