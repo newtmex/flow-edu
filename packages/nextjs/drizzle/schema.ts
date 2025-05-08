@@ -13,6 +13,7 @@ export const walletBindings = pgTable("wallet_bindings", {
 export enum Origin {
   BSC = "BSC",
   EDUChain = "EDUChain",
+  Arbitrum = "Arbitrum",
 }
 
 export enum TxStatus {
