@@ -4,7 +4,6 @@ import { Address, parseEther } from "viem";
 
 // Config
 export const MIN_BOUND_WALLET_GAS = parseEther("0.004");
-const MAX_GAS_SUBSIDY = parseEther("0.00012");
 
 export const trySendBNBGas = async (to: Address) => {
   const balance = await bscClient.getBalance({ address: to });
@@ -13,7 +12,7 @@ export const trySendBNBGas = async (to: Address) => {
   if (balance >= MIN_BOUND_WALLET_GAS) return;
 
   // Send either the missing amount or SMALL_TOP_UP, whichever is smaller
-  const refillAmount = MAX_GAS_SUBSIDY - balance;
+  const refillAmount = MIN_BOUND_WALLET_GAS - balance;
   if (refillAmount <= 0n) return; // Already has enough or close to max
 
   const txHash = await bscWalletClient.sendTransaction({
@@ -37,7 +36,7 @@ export const trySendEDUGas = async (to: Address) => {
   if (balance >= MIN_BOUND_WALLET_GAS) return;
 
   // Send either the missing amount or SMALL_TOP_UP, whichever is smaller
-  const refillAmount = MAX_GAS_SUBSIDY - balance;
+  const refillAmount = MIN_BOUND_WALLET_GAS - balance;
   if (refillAmount <= 0n) return; // Already has enough or close to max
 
   const txHash = await eduWalletClient.sendTransaction({

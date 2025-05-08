@@ -56,7 +56,7 @@ export async function ensureERC20AllowanceAndBalance({
   ]);
 
   if (balance < amount) {
-    throw new Error(`Insufficient balance: ${balance} < ${amount}`);
+    return false;
   }
 
   if (allowance < amount) {
@@ -68,6 +68,8 @@ export async function ensureERC20AllowanceAndBalance({
       args: [spenderAddress, 2n ** 251n], // large allowance
     });
   }
+
+  return true;
 }
 
 export const bridgeBscToArbitrum = async (encryptedPrivKey: string, tokenAddress: string | null) => {
@@ -158,17 +160,20 @@ export const bridgeBscToArbitrum = async (encryptedPrivKey: string, tokenAddress
   return { hash: txHash, value: amountToBridge };
 };
 
-export const bridgeArbitrumToBsc = async (to: string, amount: bigint, tokenAddress: string): Promise<string> => {
+export const bridgeArbitrumToBsc = async (to: string, amount: bigint, tokenAddress: string) => {
   const wrapper = externalContracts["42161"].OFTWrapper;
 
-  await ensureERC20AllowanceAndBalance({
-    publicClient: arbClient,
-    account: centralAccount,
-    amount,
-    spenderAddress: wrapper.address,
-    tokenAddress,
-    walletClient: arbWalletClient,
-  });
+  if (
+    !(await ensureERC20AllowanceAndBalance({
+      publicClient: arbClient,
+      account: centralAccount,
+      amount,
+      spenderAddress: wrapper.address,
+      tokenAddress,
+      walletClient: arbWalletClient,
+    }))
+  )
+    return null;
 
   const toBytes32 = zeroPadBytes(getAddress(to), 32);
   const adapterParams = solidityPacked(
@@ -213,18 +218,21 @@ export const bridgeArbitrumToBsc = async (to: string, amount: bigint, tokenAddre
   return hash;
 };
 
-export const bridgeEDUOnArbToEduChain = async (to: string, amount: bigint): Promise<string> => {
+export const bridgeEDUOnArbToEduChain = async (to: string, amount: bigint) => {
   const ethBridger = new EthBridger(eduChainNetwork);
   const parentSigner = new Wallet(process.env.PRIVATE_KEY!, arbProvider);
 
-  await ensureERC20AllowanceAndBalance({
-    publicClient: arbClient,
-    account: centralAccount,
-    amount,
-    spenderAddress: ethBridger.childNetwork.ethBridge.inbox,
-    tokenAddress: eduTokenAddressOnArb,
-    walletClient: arbWalletClient,
-  });
+  if (
+    !(await ensureERC20AllowanceAndBalance({
+      publicClient: arbClient,
+      account: centralAccount,
+      amount,
+      spenderAddress: ethBridger.childNetwork.ethBridge.inbox,
+      tokenAddress: eduTokenAddressOnArb,
+      walletClient: arbWalletClient,
+    }))
+  )
+    return null;
 
   const sendAmount = BigNumber.from(amount);
 

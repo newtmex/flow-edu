@@ -28,7 +28,10 @@ export async function handleBridgingFromChain({
 }) {
   let pending = await getPendingTxs();
 
-  while (pending.length > 0) {
+  let trials = 0;
+  while (pending.length > 0 && trials < 5) {
+    trials++;
+
     await Promise.all(
       pending.map(async tx => {
         const boundWallet = await db.query.walletBindings.findFirst({
@@ -52,12 +55,15 @@ export async function handleBridgingFromChain({
             : await bridgeFn(boundWallet.privateKey, tx.ca);
 
           if (bridgedInfo) {
-            await db.insert(txsOnArb).values({
-              originHash: bridgedInfo.hash,
-              to: boundWallet.userAddress,
-              origin,
-              value: String(bridgedInfo.value),
-            });
+            await db
+              .insert(txsOnArb)
+              .values({
+                originHash: bridgedInfo.hash,
+                to: boundWallet.userAddress,
+                origin,
+                value: String(bridgedInfo.value),
+              })
+              .onConflictDoNothing();
             newStatus = TxStatus.Handled;
           } else {
             newStatus = TxStatus.Failed;

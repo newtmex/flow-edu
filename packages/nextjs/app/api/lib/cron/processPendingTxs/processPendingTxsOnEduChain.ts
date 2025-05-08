@@ -1,6 +1,6 @@
 import { bridgeEDUChainToArbitrum } from "../../bridge";
 import { handleBridgingFromChain } from "./helpres";
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { db } from "~~/drizzle/db";
 import { Origin, TxStatus, txsOnEduChain } from "~~/drizzle/schema";
 
@@ -17,7 +17,8 @@ export default async function () {
         })
         .from(txsOnEduChain)
         .where(eq(txsOnEduChain.status, TxStatus.Pending))
-        .limit(10),
+        .limit(10)
+        .orderBy(asc(txsOnEduChain.createdAt)),
 
     updateTxStatus: (txHash, status) =>
       db.update(txsOnEduChain).set({ status }).where(eq(txsOnEduChain.txHash, txHash)),

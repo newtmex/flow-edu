@@ -1,13 +1,17 @@
 import { bridgeArbitrumToBsc, bridgeEDUOnArbToEduChain, claimEDUOnArbitrum } from "../../bridge";
 import { eduTokenAddressOnArb } from "../../constants";
 import { normalizeAddresses } from "../../drizzleUtils";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "~~/drizzle/db";
 import { Origin, TxStatus, txsOnArb, walletBindings } from "~~/drizzle/schema";
 
 // fetch up to N pending txs
-async function fetchPending(limit = 10) {
-  const rows = await db.select().from(txsOnArb).where(eq(txsOnArb.status, TxStatus.Pending)).limit(limit);
+async function fetchPending(origin: Origin, limit = 10) {
+  const rows = await db
+    .select()
+    .from(txsOnArb)
+    .where(and(eq(txsOnArb.status, TxStatus.Pending), eq(txsOnArb.origin, origin)))
+    .limit(limit);
 
   return normalizeAddresses(rows);
 }
@@ -71,9 +75,21 @@ async function processTx(tx: Awaited<ReturnType<typeof fetchPending>>[0]) {
 
 // main loop
 export default async function () {
+  let lastPendingKey = "";
   while (true) {
-    const pending = await fetchPending();
+    const pending = await Promise.all([fetchPending(Origin.BSC), fetchPending(Origin.EDUChain)]).then(r => r.flat());
     if (!pending.length) break;
+
+    const currentPendingKey = pending
+      .map(tx => tx.originHash)
+      .sort()
+      .join(",");
+    if (currentPendingKey === lastPendingKey) {
+      console.warn("🔁 Identical pending set detected. Exiting loop.");
+      break;
+    }
+
+    lastPendingKey = currentPendingKey;
 
     // process in sequence (to simplify per-tx db transactions/logging)
     for (const tx of pending) {
