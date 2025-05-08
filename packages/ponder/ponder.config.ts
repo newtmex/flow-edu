@@ -37,8 +37,6 @@ export const networks = {
     BSC: {
         chainId: 56,
         transport: http(process.env.PONDER_RPC_URL_56),
-        pollingInterval: 3_000,
-        maxRequestsPerSecond: 10,
     },
     EDUChain: {
         chainId: 41923,
