@@ -1,9 +1,9 @@
 import { bridgeArbitrumToBsc, bridgeEDUOnArbToEduChain, claimEDUOnArbitrum } from "../../bridge";
 import { eduTokenAddressOnArb } from "../../constants";
 import { normalizeAddresses } from "../../drizzleUtils";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { db } from "~~/drizzle/db";
-import { Origin, TxStatus, txsOnArb, walletBindings } from "~~/drizzle/schema";
+import { Origin, TxStatus, txsOnArb, txsOnBsc, txsOnEduChain, walletBindings } from "~~/drizzle/schema";
 
 // fetch up to N pending txs
 async function fetchPending(origin: Origin, limit = 10) {
@@ -16,8 +16,11 @@ async function fetchPending(origin: Origin, limit = 10) {
   return normalizeAddresses(rows);
 }
 
+type PendingTx = Awaited<ReturnType<typeof fetchPending>>[0];
+type TxWithOrigin = { originHash: string } & PendingTx;
+
 // update only status & arbHash & timestamp
-async function updateStatus(originHash: string, status: TxStatus, arbHash: string[] | null = null) {
+async function updateStatus(id: number, status: TxStatus, arbHash: string[] | null = null) {
   await db
     .update(txsOnArb)
     .set({
@@ -25,25 +28,38 @@ async function updateStatus(originHash: string, status: TxStatus, arbHash: strin
       arbHash: arbHash ?? [],
       updatedAt: new Date(),
     })
-    .where(eq(txsOnArb.originHash, originHash));
+    .where(eq(txsOnArb.id, id));
 }
 
 // core per-tx processing
-async function processTx(tx: Awaited<ReturnType<typeof fetchPending>>[0]) {
+async function processTx(tx: PendingTx | TxWithOrigin) {
+  if (!tx.originHash) {
+    tx = (await tryUpdateTxOrigin(tx)) || tx;
+  }
+
+  if (!tx.originHash) {
+    console.info(`Tx has no originHash ${tx.id} ${tx.originHash}`);
+    return;
+  }
+
+  await processPendingTxWithOrigin(tx as TxWithOrigin);
+}
+
+async function processPendingTxWithOrigin(tx: TxWithOrigin) {
   // find bound wallet
   const wallet = await db.query.walletBindings.findFirst({
     where: eq(walletBindings.userAddress, tx.to),
   });
 
   if (!wallet?.signature) {
-    console.info(`Ignoring unbound tx ${tx.originHash}`);
-    return updateStatus(tx.originHash, TxStatus.Ignored, tx.arbHash);
+    console.info(`Ignoring unbound tx ${tx.id} ${tx.originHash}`);
+    return updateStatus(tx.id, TxStatus.Ignored, tx.arbHash);
   }
 
   // ensure we have at least one arbHash before marking Handled
   const recordHandled = async (hashes: string[]) => {
     console.info(`✅ Completed ${tx.originHash}:`, hashes);
-    await updateStatus(tx.originHash, TxStatus.Handled, hashes);
+    await updateStatus(tx.id, TxStatus.Handled, hashes);
   };
 
   // branch by origin
@@ -60,8 +76,9 @@ async function processTx(tx: Awaited<ReturnType<typeof fetchPending>>[0]) {
     if (!hashes.length) {
       const claimHash = await claimEDUOnArbitrum(tx.originHash);
       if (!claimHash) return;
+
       hashes.push(claimHash);
-      await updateStatus(tx.originHash, TxStatus.Pending, hashes);
+      await updateStatus(tx.id, TxStatus.Pending, hashes);
     }
 
     // step 2: bridge onward to BSC
@@ -71,6 +88,40 @@ async function processTx(tx: Awaited<ReturnType<typeof fetchPending>>[0]) {
       await recordHandled(hashes);
     }
   }
+}
+
+async function tryUpdateTxOrigin(tx: PendingTx) {
+  const originTable = tx.origin == Origin.BSC ? txsOnBsc : tx.origin == Origin.EDUChain ? txsOnEduChain : undefined;
+  if (originTable) {
+    const originRow = await db
+      .select({ hash: originTable.txHash })
+      .from(originTable)
+      .where(and(eq(originTable.status, TxStatus.Pending), eq(originTable.value, tx.value)))
+      .orderBy(asc(originTable.createdAt))
+      .limit(1)
+      .then(r => r.at(0));
+    if (!originRow) return null;
+
+    const status =
+      !tx.arbHash?.length || (tx.arbHash.length < 2 && tx.origin == Origin.EDUChain)
+        ? TxStatus.Pending
+        : TxStatus.Handled;
+
+    tx = await db
+      .update(txsOnArb)
+      .set({
+        originHash: originRow.hash,
+        updatedAt: new Date(),
+        status,
+      })
+      .where(eq(txsOnArb.id, tx.id))
+      .returning()
+      .then(r => r[0]);
+
+    if (tx.status == TxStatus.Handled) return null;
+  }
+
+  return tx as TxWithOrigin;
 }
 
 // main loop
@@ -98,7 +149,7 @@ export default async function () {
       } catch (err) {
         console.error(`❌ Error processing ${tx.originHash}`, err);
         // optionally mark failed
-        await updateStatus(tx.originHash, TxStatus.Failed);
+        // await updateStatus(tx.originHash, TxStatus.Failed);
       }
     }
   }

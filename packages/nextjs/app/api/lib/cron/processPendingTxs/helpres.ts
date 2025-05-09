@@ -13,7 +13,8 @@ type PendingTx = {
   ca: string | null;
 };
 
-type BridgeFn = (privateKey: string, ca: string | null) => Promise<null | { hash: string; value: bigint | string }>;
+type BridgedInfo = null | { hash: string; value: bigint | string };
+type BridgeFn = (privateKey: string, ca: string | null) => Promise<BridgedInfo>;
 
 export async function handleBridgingFromChain({
   getPendingTxs,
@@ -66,7 +67,7 @@ export async function handleBridgingFromChain({
               .onConflictDoNothing();
             newStatus = TxStatus.Handled;
           } else {
-            newStatus = TxStatus.Failed;
+            // newStatus = TxStatus.Failed;
           }
         }
 
