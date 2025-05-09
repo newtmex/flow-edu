@@ -1,4 +1,4 @@
-import { bigint, json, numeric, pgEnum, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { bigint, integer, json, numeric, pgEnum, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
 
 export const walletBindings = pgTable("wallet_bindings", {
   userAddress: text().primaryKey(),
@@ -20,7 +20,7 @@ export enum TxStatus {
   Pending = "pending",
   Handled = "handled",
   Ignored = "ignored",
-  Failed = "failed",
+  // Failed = "failed",
 }
 
 export function enumToPgEnum<T extends Record<string, any>>(myEnum: T): [T[keyof T], ...T[keyof T][]] {
@@ -33,12 +33,13 @@ const addressColumn = () => varchar({ length: 42 });
 const ethBalanceColumn = () => numeric({ precision: 78, scale: 0 });
 
 export const txsOnArb = pgTable("txs_on_arb", {
-  originHash: varchar({ length: 66 }).primaryKey(),
+  id: integer().primaryKey().generatedByDefaultAsIdentity(),
+  originHash: varchar({ length: 66 }).unique(),
   arbHash: json().$type<string[]>().default([]),
   to: addressColumn().notNull(),
   value: ethBalanceColumn().notNull(),
   origin: originEnum().notNull(), // "BSC" | "EDUChain"
-  status: txStatusEnum().default(TxStatus.Pending), // pending | handled | ignored | failed
+  status: txStatusEnum().default(TxStatus.Pending).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

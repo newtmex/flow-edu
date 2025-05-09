@@ -1,0 +1,1 @@
+ALTER TABLE "txs_on_arb" ALTER COLUMN "status" SET NOT NULL;

@@ -1,5 +1,5 @@
 import { eduTokenAddressOnArb } from "../lib/constants";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { isAddressEqual } from "viem";
 import externalContracts from "~~/contracts/externalContracts";
 import { db } from "~~/drizzle/db";
@@ -10,41 +10,14 @@ export const {
   ERC20Inbox: { address: inbox },
 } = externalContracts["42161"];
 
-type Match = { originHash: string; arbHash: string[] | null };
-
-// 1) Helper: find the matching row by origin/to/value
-async function findArbRow(origin: Origin, to: string, value: string): Promise<Match> {
-  const row = await db
-    .select({ originHash: txsOnArb.originHash, arbHash: txsOnArb.arbHash })
-    .from(txsOnArb)
-    .where(and(eq(txsOnArb.origin, origin), eq(txsOnArb.to, to), eq(txsOnArb.value, value)))
-    .limit(1)
-    .then(r => r[0]);
-
-  if (!row) {
-    throw new Error(`Arb tx not found for { to=${to}, value=${value}, origin=${origin} }`);
-  }
-  return row;
-}
-
-// 2) Helper: update the row’s arbHash & status
-async function markHandled(originHash: string, newHashes: string[]) {
-  await db
-    .update(txsOnArb)
-    .set({
-      arbHash: newHashes,
-      status: TxStatus.Handled,
-      updatedAt: new Date(),
-    })
-    .where(eq(txsOnArb.originHash, originHash));
-}
+type Match = { id: number; originHash: string | null; arbHash: string[] | null; status: TxStatus };
 
 const isOutbox = (ca: string) => isAddressEqual(ca, outbox);
 
 // 3) Configuration for each “ca” check
 const handlers = [
   {
-    // EDUChain → BSC claim arrives on the Outbox
+    // EDUChain → BSC claim transaction on the Outbox
     matchCa: isOutbox,
     origin: Origin.EDUChain,
     computeNewHashes: (row: Match, txHash: string) => (row.arbHash?.length ? row.arbHash : [txHash]),
@@ -71,31 +44,77 @@ const handlers = [
 ];
 
 // 4) Main logic
-export default async function handleArbTxs(ca: string, txHash: string, to: string, value: string) {
+export default async function handleArbTxs({
+  ca,
+  to,
+  txHash,
+  from,
+  value,
+}: {
+  ca: string;
+  txHash: string;
+  to: string;
+  from: string;
+  value: string;
+}) {
+  const filter = isOutbox(ca) ? eq(walletBindings.flowEDUAddress, from) : eq(walletBindings.userAddress, to);
   const boundWallet = await db
     .select({ signature: walletBindings.signature, userAddress: walletBindings.userAddress })
     .from(walletBindings)
-    .where(eq(walletBindings.userAddress, to))
+    .where(filter)
     .limit(1)
     .then(r => r.at(0));
-  if (!isOutbox(ca) && !boundWallet) return;
+
+  if (!boundWallet) return;
 
   for (const h of handlers) {
     if (!h.matchCa(ca)) continue;
 
-    try {
-      const row = await findArbRow(h.origin, to, value);
-      const newHashes = h.computeNewHashes(row, txHash);
+    const findRow = () =>
+      db
+        .select({
+          originHash: txsOnArb.originHash,
+          arbHash: txsOnArb.arbHash,
+          id: txsOnArb.id,
+          status: txsOnArb.status,
+        })
+        .from(txsOnArb)
+        .where(and(eq(txsOnArb.origin, h.origin), eq(txsOnArb.to, to), eq(txsOnArb.value, value)))
+        .limit(1)
+        .orderBy(asc(txsOnArb.createdAt))
+        .then(r => r.at(0));
+    const insertRowAndGetRow = () =>
+      db
+        .insert(txsOnArb)
+        .values({
+          origin: h.origin,
+          to,
+          value,
+        })
+        .returning()
+        .then(r => r[0]);
 
-      // only write if hashes changed
-      if (newHashes.length !== (row.arbHash?.length || 0) || newHashes.some((h, i) => row.arbHash?.[i] !== h)) {
-        await markHandled(row.originHash, newHashes);
+    try {
+      const row = (await findRow()) || (await insertRowAndGetRow());
+      if (row.status != TxStatus.Handled) {
+        const newHashes = h.computeNewHashes(row, txHash);
+
+        // only write if hashes changed
+        if (newHashes.length !== (row.arbHash?.length || 0) || newHashes.some((h, i) => row.arbHash?.[i] !== h)) {
+          await db
+            .update(txsOnArb)
+            .set({
+              arbHash: newHashes,
+              status: TxStatus.Handled,
+              updatedAt: new Date(),
+            })
+            .where(eq(txsOnArb.id, row.id));
+        }
       }
     } catch (error) {
       console.log("Error on hash", txHash, error);
-    } finally {
-      // once handled, stop checking other handlers
-      break;
     }
+    // once handled, stop checking other handlers
+    break;
   }
 }

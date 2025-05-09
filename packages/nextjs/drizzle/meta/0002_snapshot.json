@@ -1,6 +1,6 @@
 {
-  "id": "ea5d343d-40ff-40c5-9b3b-cedc552d486e",
-  "prevId": "2e5d518a-e1ff-411a-879d-d0c1d2d38b4a",
+  "id": "59a2f20f-d2d1-44bd-93c6-8940757eb592",
+  "prevId": "ea5d343d-40ff-40c5-9b3b-cedc552d486e",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -87,7 +87,7 @@
           "type": "status",
           "typeSchema": "public",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "'pending'"
         },
         "created_at": {

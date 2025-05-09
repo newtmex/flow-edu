@@ -12,8 +12,15 @@
     {
       "idx": 1,
       "version": "7",
-      "when": 1746616787416,
-      "tag": "0001_futuristic_wither",
+      "when": 1746790633394,
+      "tag": "0001_rich_lockjaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1746802880334,
+      "tag": "0002_sour_tarantula",
       "breakpoints": true
     }
   ]

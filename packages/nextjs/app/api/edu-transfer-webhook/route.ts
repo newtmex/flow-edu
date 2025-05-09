@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { centralAccount } from "../lib/config";
 import { normalizeAddresses } from "../lib/drizzleUtils";
 import handleArbTxs from "./arbTxs";
 import { eq, or } from "drizzle-orm";
-import { isAddressEqual } from "viem";
 import { db } from "~~/drizzle/db";
 import { Origin, txsOnBsc, txsOnEduChain, walletBindings } from "~~/drizzle/schema";
 
@@ -11,15 +9,19 @@ export const POST = async (req: NextRequest) => {
   let body: any;
   try {
     body = await req.json();
-  } catch {
+    body = normalizeAddresses(body);
+    body.valueSender = body.valueSender.slice(0, 42); // Normalise valueSender bytes32
+    body.valueRecipient = body.valueRecipient.slice(0, 42); // Normalise from bytes32
+  } catch (e) {
+    console.error(e);
     return Response.json({ message: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { from, to, value, txHash, ca, origin } = normalizeAddresses(body);
+  const { valueSender, valueRecipient, value, txHash, ca, origin } = body;
 
   if (origin !== Origin.Arbitrum) {
     const boundWallet = await db.query.walletBindings.findFirst({
-      where: or(eq(walletBindings.flowEDUAddress, to), eq(walletBindings.flowEDUAddress, from)),
+      where: or(eq(walletBindings.flowEDUAddress, valueRecipient), eq(walletBindings.flowEDUAddress, valueSender)),
     });
 
     if (!boundWallet) return NextResponse.json({ status: "ignored" });
@@ -29,16 +31,16 @@ export const POST = async (req: NextRequest) => {
         ? db.insert(txsOnBsc).values({
             txHash,
             ca,
-            from,
-            to,
+            from: valueSender,
+            to: valueRecipient,
             value,
           })
         : origin == Origin.EDUChain
           ? db.insert(txsOnEduChain).values({
               txHash,
               ca,
-              from,
-              to,
+              from: valueSender,
+              to: valueRecipient,
               value,
             })
           : (() => {
@@ -46,9 +48,7 @@ export const POST = async (req: NextRequest) => {
             })()
     ).onConflictDoNothing();
   } else {
-    if (!isAddressEqual(centralAccount.address, from)) return NextResponse.json({ status: "ignored" });
-
-    await handleArbTxs(ca, txHash, to, value);
+    await handleArbTxs({ ca, txHash, to: valueRecipient, value, from: valueSender });
   }
 
   return NextResponse.json({ status: "handled" });
