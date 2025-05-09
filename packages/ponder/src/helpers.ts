@@ -1,8 +1,8 @@
 import { networks } from "../ponder.config";
 
 export const notifyNextApi = async (data: {
-    from: string;
-    to: string;
+    valueSender: string;
+    valueRecipient: string;
     value: string;
     txHash: string;
     ca: string | null;
