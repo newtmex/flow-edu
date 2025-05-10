@@ -1,4 +1,5 @@
 import { eduTokenAddressOnArb } from "../lib/constants";
+import { getArbTxRowStatus, tryUpdateTxOrigin } from "../lib/cron/processPendingTxs/processPendingTxsOnArb";
 import { and, asc, eq } from "drizzle-orm";
 import { isAddressEqual } from "viem";
 import externalContracts from "~~/contracts/externalContracts";
@@ -46,18 +47,20 @@ const handlers = [
 // 4) Main logic
 export default async function handleArbTxs({
   ca,
-  to,
+  valueRecipient,
   txHash,
-  from,
+  valueSender,
   value,
 }: {
   ca: string;
   txHash: string;
-  to: string;
-  from: string;
+  valueRecipient: string;
+  valueSender: string;
   value: string;
 }) {
-  const filter = isOutbox(ca) ? eq(walletBindings.flowEDUAddress, from) : eq(walletBindings.userAddress, to);
+  const filter = isOutbox(ca)
+    ? eq(walletBindings.flowEDUAddress, valueSender)
+    : eq(walletBindings.userAddress, valueRecipient);
   const boundWallet = await db
     .select({ signature: walletBindings.signature, userAddress: walletBindings.userAddress })
     .from(walletBindings)
@@ -77,9 +80,13 @@ export default async function handleArbTxs({
           arbHash: txsOnArb.arbHash,
           id: txsOnArb.id,
           status: txsOnArb.status,
+          origin: txsOnArb.origin,
+          value: txsOnArb.value,
         })
         .from(txsOnArb)
-        .where(and(eq(txsOnArb.origin, h.origin), eq(txsOnArb.to, to), eq(txsOnArb.value, value)))
+        .where(
+          and(eq(txsOnArb.origin, h.origin), eq(txsOnArb.valueRecipient, valueRecipient), eq(txsOnArb.value, value)),
+        )
         .limit(1)
         .orderBy(asc(txsOnArb.createdAt))
         .then(r => r.at(0));
@@ -88,27 +95,38 @@ export default async function handleArbTxs({
         .insert(txsOnArb)
         .values({
           origin: h.origin,
-          to,
+          valueRecipient,
+          valueSender,
           value,
         })
         .returning()
         .then(r => r[0]);
 
     try {
-      const row = (await findRow()) || (await insertRowAndGetRow());
+      let row = (await findRow()) || (await insertRowAndGetRow());
       if (row.status != TxStatus.Handled) {
         const newHashes = h.computeNewHashes(row, txHash);
 
         // only write if hashes changed
         if (newHashes.length !== (row.arbHash?.length || 0) || newHashes.some((h, i) => row.arbHash?.[i] !== h)) {
-          await db
+          row = await db
             .update(txsOnArb)
             .set({
               arbHash: newHashes,
-              status: TxStatus.Handled,
               updatedAt: new Date(),
+              status: row.originHash ? getArbTxRowStatus(row) : TxStatus.Pending,
             })
-            .where(eq(txsOnArb.id, row.id));
+            .where(eq(txsOnArb.id, row.id))
+            .returning()
+            .then(r => r[0]);
+        }
+
+        if (!row.originHash) {
+          await tryUpdateTxOrigin(row).then(newRow => {
+            if (newRow) {
+              row = newRow;
+            }
+          });
         }
       }
     } catch (error) {

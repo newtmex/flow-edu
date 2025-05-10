@@ -31,16 +31,16 @@ export const POST = async (req: NextRequest) => {
         ? db.insert(txsOnBsc).values({
             txHash,
             ca,
-            from: valueSender,
-            to: valueRecipient,
+            valueSender,
+            valueRecipient,
             value,
           })
         : origin == Origin.EDUChain
           ? db.insert(txsOnEduChain).values({
               txHash,
               ca,
-              from: valueSender,
-              to: valueRecipient,
+              valueSender,
+              valueRecipient,
               value,
             })
           : (() => {
@@ -48,7 +48,7 @@ export const POST = async (req: NextRequest) => {
             })()
     ).onConflictDoNothing();
   } else {
-    await handleArbTxs({ ca, txHash, to: valueRecipient, value, from: valueSender });
+    await handleArbTxs({ ca, txHash, valueRecipient, value, valueSender });
   }
 
   return NextResponse.json({ status: "handled" });

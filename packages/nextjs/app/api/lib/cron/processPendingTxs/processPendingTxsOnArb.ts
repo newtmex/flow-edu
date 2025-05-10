@@ -48,7 +48,7 @@ async function processTx(tx: PendingTx | TxWithOrigin) {
 async function processPendingTxWithOrigin(tx: TxWithOrigin) {
   // find bound wallet
   const wallet = await db.query.walletBindings.findFirst({
-    where: eq(walletBindings.userAddress, tx.to),
+    where: eq(walletBindings.userAddress, tx.valueRecipient),
   });
 
   if (!wallet?.signature) {
@@ -66,7 +66,7 @@ async function processPendingTxWithOrigin(tx: TxWithOrigin) {
   if (tx.origin === Origin.BSC) {
     if (tx.arbHash?.length) return; // already bridged
 
-    const toEduHash = await bridgeEDUOnArbToEduChain(tx.to, BigInt(tx.value));
+    const toEduHash = await bridgeEDUOnArbToEduChain(tx.valueRecipient, BigInt(tx.value));
     if (toEduHash) {
       await recordHandled([toEduHash]);
     }
@@ -82,7 +82,7 @@ async function processPendingTxWithOrigin(tx: TxWithOrigin) {
     }
 
     // step 2: bridge onward to BSC
-    const toBscHash = await bridgeArbitrumToBsc(tx.to, BigInt(tx.value), eduTokenAddressOnArb);
+    const toBscHash = await bridgeArbitrumToBsc(tx.valueRecipient, BigInt(tx.value), eduTokenAddressOnArb);
     if (toBscHash) {
       hashes.push(toBscHash);
       await recordHandled(hashes);
@@ -90,7 +90,10 @@ async function processPendingTxWithOrigin(tx: TxWithOrigin) {
   }
 }
 
-async function tryUpdateTxOrigin(tx: PendingTx) {
+export const getArbTxRowStatus = (tx: Pick<PendingTx, "arbHash" | "origin">) =>
+  !tx.arbHash?.length || (tx.arbHash.length < 2 && tx.origin == Origin.EDUChain) ? TxStatus.Pending : TxStatus.Handled;
+
+export async function tryUpdateTxOrigin(tx: Pick<PendingTx, "arbHash" | "origin" | "value" | "status" | "id">) {
   const originTable = tx.origin == Origin.BSC ? txsOnBsc : tx.origin == Origin.EDUChain ? txsOnEduChain : undefined;
   if (originTable) {
     const originRow = await db
@@ -102,17 +105,12 @@ async function tryUpdateTxOrigin(tx: PendingTx) {
       .then(r => r.at(0));
     if (!originRow) return null;
 
-    const status =
-      !tx.arbHash?.length || (tx.arbHash.length < 2 && tx.origin == Origin.EDUChain)
-        ? TxStatus.Pending
-        : TxStatus.Handled;
-
     tx = await db
       .update(txsOnArb)
       .set({
         originHash: originRow.hash,
         updatedAt: new Date(),
-        status,
+        status: getArbTxRowStatus(tx),
       })
       .where(eq(txsOnArb.id, tx.id))
       .returning()
@@ -136,7 +134,8 @@ export default async function () {
       .sort()
       .join(",");
     if (currentPendingKey === lastPendingKey) {
-      console.warn("🔁 Identical pending set detected. Exiting loop.");
+      const [tx] = pending;
+      console.warn("🔁 Arb Identical pending set detected. Exiting loop.", tx.originHash, tx.origin);
       break;
     }
 

@@ -35,8 +35,9 @@ const ethBalanceColumn = () => numeric({ precision: 78, scale: 0 });
 export const txsOnArb = pgTable("txs_on_arb", {
   id: integer().primaryKey().generatedByDefaultAsIdentity(),
   originHash: varchar({ length: 66 }).unique(),
+  valueRecipient: addressColumn().notNull(),
+  valueSender: addressColumn().notNull(),
   arbHash: json().$type<string[]>().default([]),
-  to: addressColumn().notNull(),
   value: ethBalanceColumn().notNull(),
   origin: originEnum().notNull(), // "BSC" | "EDUChain"
   status: txStatusEnum().default(TxStatus.Pending).notNull(),
@@ -51,8 +52,8 @@ export const jobLocks = pgTable("job_locks", {
 
 const originColumns = {
   txHash: varchar({ length: 66 }).primaryKey(),
-  from: addressColumn().notNull(),
-  to: addressColumn().notNull(),
+  valueSender: addressColumn().notNull(),
+  valueRecipient: addressColumn().notNull(),
   ca: addressColumn(),
   value: ethBalanceColumn().notNull(),
   status: txStatusEnum().default(TxStatus.Pending),
