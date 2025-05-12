@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { normalizeAddress } from "../lib/helpers";
+import { normalizeAddresses } from "../lib/drizzleUtils";
 import { eq } from "drizzle-orm";
 import { isAddress, isHex, verifyMessage } from "viem";
 import { z } from "zod";
@@ -21,7 +21,6 @@ const BindWalletSchema = z.object({
   signature: z.string().refine((v): v is `0x${string}` => isHex(v), {
     message: "Invalid signature format",
   }),
-  message: z.string().min(1, "Message required"),
 });
 
 export async function POST(req: NextRequest) {
@@ -33,18 +32,25 @@ export async function POST(req: NextRequest) {
     return Response.json({ message: "Invalid JSON body" }, { status: 400 });
   }
 
-  const parse = BindWalletSchema.safeParse(body);
+  const parse = BindWalletSchema.safeParse(normalizeAddresses(body));
 
   if (!parse.success) {
     return Response.json({ message: parse.error.message, errors: parse.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { userAddress: address, signature, message } = parse.data;
+  const { userAddress, signature } = parse.data;
+  const binding = await db.query.walletBindings
+    .findFirst({ where: eq(walletBindings.userAddress, userAddress) })
+    .execute();
+
+  if (!binding) {
+    return Response.json({ message: "Wallet not found" }, { status: 404 });
+  }
 
   // Signature verification
   const isValid = await verifyMessage({
-    address,
-    message,
+    address: binding.userAddress,
+    message: binding.message,
     signature,
   });
 
@@ -52,20 +58,8 @@ export async function POST(req: NextRequest) {
     return Response.json({ message: "Invalid Signature" }, { status: 400 });
   }
 
-  // Optional: Enforce signing recent data only (prevents replay)
-  // e.g. message must include "Bind Wallet at [timestamp]" and not be older than X mins.
-
-  // Update record
-  const binding = await db
-    .update(walletBindings)
-    .set({ signature, message })
-    .where(eq(walletBindings.userAddress, normalizeAddress(address)))
-    .returning()
-    .then(rows => rows[0]);
-
-  if (!binding) {
-    return Response.json({ message: "Wallet not found" }, { status: 404 });
-  }
+  // Complete binding
+  await db.update(walletBindings).set({ signature }).where(eq(walletBindings.userAddress, binding.userAddress));
 
   return Response.json({ success: true });
 }
