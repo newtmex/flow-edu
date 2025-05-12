@@ -95,7 +95,10 @@ export default async function Home() {
                 <li>FlowEDU generates a deterministic HD wallet just for you</li>
                 <li>Bind your wallet with a signature</li>
                 <li>Send tokens to your FlowEDU wallet address</li>
-                <li>FlowEDU automatically bridges your tokens to EDU Chain</li>
+                <li>
+                  FlowEDU automatically bridges your tokens to EDU Chain or BNB Smart Chain (BSC) from any wallet or
+                  centralized exchange
+                </li>
               </ol>
             </div>
           </div>
