@@ -1,5 +1,5 @@
 {
-  "id": "ea5d343d-40ff-40c5-9b3b-cedc552d486e",
+  "id": "1537def0-1570-470d-b33d-203a167aa813",
   "prevId": "2e5d518a-e1ff-411a-879d-d0c1d2d38b4a",
   "version": "7",
   "dialect": "postgresql",
@@ -56,18 +56,24 @@
           "primaryKey": false,
           "notNull": false
         },
+        "valueRecipient": {
+          "name": "valueRecipient",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valueSender": {
+          "name": "valueSender",
+          "type": "varchar(42)",
+          "primaryKey": false,
+          "notNull": true
+        },
         "arbHash": {
           "name": "arbHash",
           "type": "json",
           "primaryKey": false,
           "notNull": false,
           "default": "'[]'::json"
-        },
-        "to": {
-          "name": "to",
-          "type": "varchar(42)",
-          "primaryKey": false,
-          "notNull": true
         },
         "value": {
           "name": "value",
@@ -87,7 +93,7 @@
           "type": "status",
           "typeSchema": "public",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "'pending'"
         },
         "created_at": {
@@ -131,14 +137,14 @@
           "primaryKey": true,
           "notNull": true
         },
-        "from": {
-          "name": "from",
+        "valueSender": {
+          "name": "valueSender",
           "type": "varchar(42)",
           "primaryKey": false,
           "notNull": true
         },
-        "to": {
-          "name": "to",
+        "valueRecipient": {
+          "name": "valueRecipient",
           "type": "varchar(42)",
           "primaryKey": false,
           "notNull": true
@@ -196,14 +202,14 @@
           "primaryKey": true,
           "notNull": true
         },
-        "from": {
-          "name": "from",
+        "valueSender": {
+          "name": "valueSender",
           "type": "varchar(42)",
           "primaryKey": false,
           "notNull": true
         },
-        "to": {
-          "name": "to",
+        "valueRecipient": {
+          "name": "valueRecipient",
           "type": "varchar(42)",
           "primaryKey": false,
           "notNull": true

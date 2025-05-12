@@ -12,22 +12,8 @@
     {
       "idx": 1,
       "version": "7",
-      "when": 1746790633394,
-      "tag": "0001_rich_lockjaw",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1746802880334,
-      "tag": "0002_sour_tarantula",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1746858301306,
-      "tag": "0003_oval_tombstone",
+      "when": 1747042980108,
+      "tag": "0001_clammy_catseye",
       "breakpoints": true
     }
   ]
