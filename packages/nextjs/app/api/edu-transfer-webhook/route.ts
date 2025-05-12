@@ -1,33 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
-import { bridgeBscToArbitrum, bridgeEDUChainToArbitrum } from "../lib/bridge";
 import { normalizeAddresses } from "../lib/drizzleUtils";
-import { eq } from "drizzle-orm";
+import handleArbTxs from "./arbTxs";
+import { eq, or } from "drizzle-orm";
 import { db } from "~~/drizzle/db";
-import { walletBindings } from "~~/drizzle/schema";
+import { Origin, txsOnBsc, txsOnEduChain, walletBindings } from "~~/drizzle/schema";
 
 export const POST = async (req: NextRequest) => {
-  const { from, to, value, txHash, ca, origin } = normalizeAddresses(await req.json());
-
-  const boundWallet = await db.query.walletBindings.findFirst({
-    where: eq(walletBindings.flowEDUAddress, to),
-  });
-
-  if (!boundWallet?.signature) return NextResponse.json({ status: "ignored" });
-
-  let hash: `0x${string}` | null = null;
-
-  switch (origin) {
-    case "BSC":
-      hash = await bridgeBscToArbitrum(boundWallet.privateKey, ca);
-      break;
-    case "EDUChain":
-      hash = await bridgeEDUChainToArbitrum(boundWallet.privateKey, ca);
-      break;
+  let body: any;
+  try {
+    body = await req.json();
+    body = normalizeAddresses(body);
+    body.valueSender = body.valueSender.slice(0, 42); // Normalise valueSender bytes32
+    body.valueRecipient = body.valueRecipient.slice(0, 42); // Normalise from bytes32
+  } catch (e) {
+    console.error(e);
+    return Response.json({ message: "Invalid JSON body" }, { status: 400 });
   }
 
-  console.log({ hash, from, value, txHash, origin });
+  const { valueSender, valueRecipient, value, txHash, ca, origin } = body;
 
-  if (!hash) return NextResponse.json({ status: "ignored" });
+  if (origin !== Origin.Arbitrum) {
+    const boundWallet = await db.query.walletBindings.findFirst({
+      where: or(eq(walletBindings.flowEDUAddress, valueRecipient), eq(walletBindings.flowEDUAddress, valueSender)),
+    });
+
+    if (!boundWallet) return NextResponse.json({ status: "ignored" });
+
+    await (
+      origin == Origin.BSC
+        ? db.insert(txsOnBsc).values({
+            txHash,
+            ca,
+            valueSender,
+            valueRecipient,
+            value,
+          })
+        : origin == Origin.EDUChain
+          ? db.insert(txsOnEduChain).values({
+              txHash,
+              ca,
+              valueSender,
+              valueRecipient,
+              value,
+            })
+          : (() => {
+              throw new Error(`Unknown origin`);
+            })()
+    ).onConflictDoNothing();
+  } else {
+    await handleArbTxs({ ca, txHash, valueRecipient, value, valueSender });
+  }
 
   return NextResponse.json({ status: "handled" });
 };

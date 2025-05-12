@@ -76,6 +76,6 @@ All funds sent to the bound Public Key in this message will be permanently lost 
     address: binding.userAddress,
     flowEDUAddress: binding.flowEDUAddress,
     isBound,
-    message: isBound ? null : binding.message,
+    message: binding.message,
   } as GenerateKeypairResponse);
 }

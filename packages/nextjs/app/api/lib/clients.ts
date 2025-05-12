@@ -1,7 +1,7 @@
 import { createPublicClient, createWalletClient, defineChain, http } from "viem";
 import { bsc } from "viem/chains";
 
-const bscTransport = http("bsc-dataseed4.binance.org");
+const bscTransport = http("https://bnb.rpc.subquery.network/public");
 export const bscClient = createPublicClient({ transport: bscTransport });
 export const bscWalletClient = createWalletClient({ chain: bsc, transport: bscTransport });
 
@@ -17,4 +17,18 @@ export const eduWalletClient = createWalletClient({
     },
   }),
   transport: eduTransport,
+});
+
+const arbTransport = http("https://arb1.arbitrum.io/rpc");
+export const arbClient = createPublicClient({ transport: arbTransport });
+export const arbWalletClient = createWalletClient({
+  chain: defineChain({
+    id: 42161,
+    name: "Arbitrum",
+    nativeCurrency: { decimals: 18, name: "ETH", symbol: "ETH" },
+    rpcUrls: {
+      default: { http: [""] },
+    },
+  }),
+  transport: arbTransport,
 });
