@@ -6,7 +6,7 @@ import { db } from "~~/drizzle/db";
 import { Origin, TxStatus, txsOnArb, txsOnBsc, txsOnEduChain, walletBindings } from "~~/drizzle/schema";
 
 // fetch up to N pending txs
-async function fetchPending(origin: Origin, limit = 10) {
+async function fetchPending(origin: Origin, limit = 100) {
   const rows = await db
     .select()
     .from(txsOnArb)
@@ -38,7 +38,8 @@ async function processTx(tx: PendingTx | TxWithOrigin) {
   }
 
   if (!tx.originHash) {
-    console.info(`Tx has no originHash ${tx.id} ${tx.originHash}`);
+    console.info(`Ignoring transaction, has no originHash ${tx.id} ${tx.origin}`);
+    await updateStatus(tx.id, TxStatus.Ignored);
     return;
   }
 
