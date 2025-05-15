@@ -65,7 +65,7 @@ async function processPendingTxWithOrigin(tx: TxWithOrigin) {
 
   // branch by origin
   if (tx.origin === Origin.BSC) {
-    if (tx.arbHash?.length) return; // already bridged
+    if (Boolean(tx.arbHash?.length)) return; // already bridged
 
     const toEduHash = await bridgeEDUOnArbToEduChain(tx.valueRecipient, BigInt(tx.value));
     if (toEduHash) {
@@ -123,11 +123,10 @@ export async function tryUpdateTxOrigin(tx: Pick<PendingTx, "arbHash" | "origin"
   return tx as TxWithOrigin;
 }
 
-// main loop
-export default async function () {
+async function processPerOrigin(origin: Origin) {
   let lastPendingKey = "";
   while (true) {
-    const pending = await Promise.all([fetchPending(Origin.BSC), fetchPending(Origin.EDUChain)]).then(r => r.flat());
+    const pending = await fetchPending(origin);
     if (!pending.length) break;
 
     const currentPendingKey = pending
@@ -153,4 +152,9 @@ export default async function () {
       }
     }
   }
+}
+
+// main loop
+export default async function () {
+  await Promise.all([Origin.BSC, Origin.EDUChain].map(origin => processPerOrigin(origin)));
 }
