@@ -22,7 +22,7 @@ export async function handleBridgingFromOriginChain({ bridgeFn, origin }: { brid
       })
       .from(originTable)
       .where(eq(originTable.status, TxStatus.Pending))
-      .limit(10)
+      .limit(100)
       .orderBy(asc(originTable.createdAt));
 
   const updateTxStatus = (txHash: string, status: TxStatus) =>
