@@ -74,6 +74,8 @@ export async function ensureERC20AllowanceAndBalance({
 }
 
 export const bridgeBscToArbitrum = async (encryptedPrivKey: string, tokenAddress: string | null) => {
+  const CONFIRMATIONS = 3;
+
   if (!tokenAddress) return null;
 
   const boundWallet = privateKeyToAccount(Encryption.new().decryptCipherText(encryptedPrivKey) as Hex);
@@ -108,12 +110,17 @@ export const bridgeBscToArbitrum = async (encryptedPrivKey: string, tokenAddress
     args: [boundWallet.address, proxyOFT.address],
   });
   if (allowance < amountToBridge) {
-    await bscWalletClient.writeContract({
+    const approveHash = await bscWalletClient.writeContract({
       account: boundWallet,
       abi: erc20Abi,
       address: tokenAddress,
       functionName: "approve",
       args: [proxyOFT.address, 2n ** 251n],
+    });
+
+    await bscClient.waitForTransactionReceipt({
+      hash: approveHash,
+      confirmations: CONFIRMATIONS,
     });
   }
 

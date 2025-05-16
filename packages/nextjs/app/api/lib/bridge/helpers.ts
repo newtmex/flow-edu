@@ -21,7 +21,7 @@ export const trySendBNBGas = async (to: Address) => {
     value: refillAmount,
   });
 
-  const txReceipt = await bscClient.waitForTransactionReceipt({ hash: txHash });
+  const txReceipt = await bscClient.waitForTransactionReceipt({ hash: txHash, confirmations: 3 });
   if (txReceipt.status !== "success") {
     console.error("Failed to send BNB gas:", txReceipt);
     throw new Error("Failed to send BNB gas");
