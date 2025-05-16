@@ -1,56 +1,44 @@
-import { bscClient, bscWalletClient, eduClient, eduWalletClient } from "./clients";
-import { centralAccount } from "./config";
-import { Address, parseEther } from "viem";
+import { Address, bytesToHex, getAddress, hexToBytes, isAddress } from "viem";
 
-// Config
-export const MIN_BOUND_WALLET_GAS = parseEther("0.004");
+/**
+ * Lowercases and formats a valid address.
+ */
+export const normalizeAddress = (address: string): Address => getAddress(address).toLowerCase();
 
-export const trySendBNBGas = async (to: Address) => {
-  const balance = await bscClient.getBalance({ address: to });
-
-  // Only send if balance is below MIN_BOUND_WALLET_GAS
-  if (balance >= MIN_BOUND_WALLET_GAS) return;
-
-  // Send either the missing amount or SMALL_TOP_UP, whichever is smaller
-  const refillAmount = MIN_BOUND_WALLET_GAS - balance;
-  if (refillAmount <= 0n) return; // Already has enough or close to max
-
-  const txHash = await bscWalletClient.sendTransaction({
-    account: centralAccount,
-    to,
-    value: refillAmount,
-  });
-
-  const txReceipt = await bscClient.waitForTransactionReceipt({ hash: txHash });
-  if (txReceipt.status !== "success") {
-    console.error("Failed to send BNB gas:", txReceipt);
-    throw new Error("Failed to send BNB gas");
+/**
+ * Strip right- zero padding from a 32-byte hex string, then
+ * return a normalized (lowercased, checksummed) 20-byte address.
+ */
+export function bytes32ToNormalizedAddress(input: string): string {
+  // 1) If it’s already a valid address, just normalize it.
+  if (/^0x[0-9A-Fa-f]{40}$/.test(input)) {
+    return normalizeAddress(input);
   }
-  console.log("Sent BNB gas:", txHash);
-};
 
-export const trySendEDUGas = async (to: Address) => {
-  const balance = await eduClient.getBalance({ address: to });
-
-  // Only send if balance is below MIN_BOUND_WALLET_GAS
-  if (balance >= MIN_BOUND_WALLET_GAS) return;
-
-  // Send either the missing amount or SMALL_TOP_UP, whichever is smaller
-  const refillAmount = MIN_BOUND_WALLET_GAS - balance;
-  if (refillAmount <= 0n) return; // Already has enough or close to max
-
-  const txHash = await eduWalletClient.sendTransaction({
-    account: centralAccount,
-    to,
-    value: refillAmount,
-  });
-
-  const txReceipt = await eduClient.waitForTransactionReceipt({ hash: txHash });
-  if (txReceipt.status !== "success") {
-    console.error("Failed to send EDU gas:", txReceipt);
-    throw new Error("Failed to send EDU gas");
+  // 2) Must be exactly 66 chars: “0x” + 64 hex
+  if (!/^0x[0-9a-fA-F]{64}$/.test(input)) {
+    throw new Error(`Invalid bytes32 hex string: ${input}`);
   }
-  console.log("Sent EDU gas:", txHash);
-};
 
-export const normalizeAddress = (address: string): Address => address.toLowerCase();
+  const raw = hexToBytes(input as any);
+
+  // 3) Try left-padded: take bytes[12..31]
+  const left = raw.slice(12, 32);
+  const leftHex = bytesToHex(left);
+  if (isAddress(leftHex)) {
+    return normalizeAddress(leftHex);
+  }
+
+  // // 4) Try right-padded: take bytes[0..19]
+  // const right = raw.slice(0, 20);
+  // const rightHex = bytesToHex(right);
+  // const isRightPadded = input
+  //   .slice(-24)
+  //   .split("")
+  //   .every(c => c === "0");
+  // if (isRightPadded && isAddress(rightHex)) {
+  //   return normalizeAddress(rightHex);
+  // }
+
+  throw new Error(`Cannot extract a 20-byte address from ${input}`);
+}

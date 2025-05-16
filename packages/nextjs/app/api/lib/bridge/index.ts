@@ -1,9 +1,9 @@
-import Encryption from "./Encryption";
-import { arbClient, arbWalletClient, bscClient, bscWalletClient, eduClient, eduWalletClient } from "./clients";
-import { centralAccount, feeCollectorAddress } from "./config";
-import { LAYERZERO_CHAIN_IDS, eduTokenAddressOnArb } from "./constants";
+import Encryption from "../Encryption";
+import { arbClient, arbWalletClient, bscClient, bscWalletClient, eduClient, eduWalletClient } from "../clients";
+import { centralAccount, feeCollectorAddress } from "../config";
+import { LAYERZERO_CHAIN_IDS, eduTokenAddressOnArb } from "../constants";
+import { arbProvider, eduChainNetwork, eduChainProvider } from "../providers";
 import { MIN_BOUND_WALLET_GAS, trySendBNBGas, trySendEDUGas } from "./helpers";
-import { arbProvider, eduChainNetwork, eduChainProvider } from "./providers";
 import { ChildToParentMessageStatus, ChildTransactionReceipt, EthBridger } from "@arbitrum/sdk";
 import { ParentToChildMessageCreator } from "@arbitrum/sdk/dist/lib/message/ParentToChildMessageCreator";
 import { BigNumber } from "@ethersproject/bignumber";
