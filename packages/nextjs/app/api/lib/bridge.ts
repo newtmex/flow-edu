@@ -8,7 +8,7 @@ import { ChildToParentMessageStatus, ChildTransactionReceipt, EthBridger } from 
 import { ParentToChildMessageCreator } from "@arbitrum/sdk/dist/lib/message/ParentToChildMessageCreator";
 import { BigNumber } from "@ethersproject/bignumber";
 import { Wallet } from "@ethersproject/wallet";
-import { solidityPacked, zeroPadBytes } from "ethers";
+import { solidityPacked, zeroPadValue } from "ethers";
 import {
   type Hex,
   type PrivateKeyAccount,
@@ -56,6 +56,7 @@ export async function ensureERC20AllowanceAndBalance({
   ]);
 
   if (balance < amount) {
+    console.log("Insufficient balance", { tokenAddress, spenderAddress, account: account.address });
     return false;
   }
 
@@ -121,7 +122,7 @@ export const bridgeBscToArbitrum = async (encryptedPrivKey: string, tokenAddress
     [2, 500_000n, 0n, centralAccount.address],
   );
 
-  const centralAccountAddressBytes32 = zeroPadBytes(getAddress(centralAccount.address), 32);
+  const centralAccountAddressBytes32 = zeroPadValue(getAddress(centralAccount.address), 32);
 
   const [nativeFee] = await bscClient.readContract({
     abi: proxyOFT.abi,
@@ -175,7 +176,7 @@ export const bridgeArbitrumToBsc = async (to: string, amount: bigint, tokenAddre
   )
     return null;
 
-  const toBytes32 = zeroPadBytes(getAddress(to), 32);
+  const toBytes32 = zeroPadValue(getAddress(to), 32);
   const adapterParams = solidityPacked(
     ["uint16", "uint256", "uint256", "address"],
     [2, 500_000n, parseEther("0.0005"), centralAccount.address],

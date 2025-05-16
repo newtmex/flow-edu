@@ -30,17 +30,17 @@ export async function handleBridgingFromOriginChain({ bridgeFn, origin }: { brid
 
   let pending = await getPendingTxs();
 
-  const lastPendingKey = "";
+  // const lastPendingKey = "";
   while (pending.length > 0) {
-    const currentPendingKey = pending
-      .map(tx => tx.txHash)
-      .sort()
-      .join(",");
-    if (currentPendingKey === lastPendingKey) {
-      const [tx] = pending;
-      console.warn("🔁 Origin Identical pending set detected. Exiting loop.", tx.txHash, origin);
-      break;
-    }
+    // const currentPendingKey = pending
+    //   .map(tx => tx.txHash)
+    //   .sort()
+    //   .join(",");
+    // if (currentPendingKey === lastPendingKey) {
+    //   const [tx] = pending;
+    //   console.warn("🔁 Origin Identical pending set detected. Exiting loop.", tx.txHash, origin);
+    //   break;
+    // }
 
     await Promise.all(
       pending.map(async tx => {
@@ -53,6 +53,8 @@ export async function handleBridgingFromOriginChain({ bridgeFn, origin }: { brid
 
         let newStatus = TxStatus.Pending;
         const txIsFeePayment = isAddressEqual(tx.valueRecipient, centralAccount.address);
+
+        console.log("working on", tx.txHash, origin);
 
         if (txIsFeePayment || !boundWallet?.signature) {
           newStatus = TxStatus.Ignored;
