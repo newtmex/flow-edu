@@ -1,6 +1,6 @@
 import { centralAccount } from "../../config";
-import { asc, eq, or } from "drizzle-orm";
-import { isAddressEqual } from "viem";
+import { and, asc, eq, gte, or } from "drizzle-orm";
+import { isAddressEqual, parseEther } from "viem";
 import { db } from "~~/drizzle/db";
 import { Origin, TxStatus, txsOnArb, txsOnBsc, txsOnEduChain, walletBindings } from "~~/drizzle/schema";
 
@@ -21,7 +21,7 @@ export async function handleBridgingFromOriginChain({ bridgeFn, origin }: { brid
         value: originTable.value,
       })
       .from(originTable)
-      .where(eq(originTable.status, TxStatus.Pending))
+      .where(and(eq(originTable.status, TxStatus.Pending), gte(originTable.value, parseEther("1").toString())))
       .limit(100)
       .orderBy(asc(originTable.createdAt));
 
@@ -30,7 +30,7 @@ export async function handleBridgingFromOriginChain({ bridgeFn, origin }: { brid
 
   let pending = await getPendingTxs();
 
-  const lastPendingKey = "";
+  let lastPendingKey = "";
   while (pending.length > 0) {
     const currentPendingKey = pending
       .map(tx => tx.txHash)
@@ -41,6 +41,8 @@ export async function handleBridgingFromOriginChain({ bridgeFn, origin }: { brid
       console.warn("🔁 Origin Identical pending set detected. Exiting loop.", tx.txHash, origin);
       break;
     }
+
+    lastPendingKey = currentPendingKey;
 
     await Promise.all(
       pending.map(async tx => {
