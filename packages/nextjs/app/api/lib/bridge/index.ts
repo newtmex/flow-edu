@@ -3,7 +3,7 @@ import { arbClient, arbWalletClient, bscClient, bscWalletClient, eduClient, eduW
 import { centralAccount, feeCollectorAddress } from "../config";
 import { LAYERZERO_CHAIN_IDS, eduTokenAddressOnArb } from "../constants";
 import { arbProvider, eduChainNetwork, eduChainProvider } from "../providers";
-import { MIN_BOUND_WALLET_GAS, trySendBNBGas, trySendEDUGas } from "./helpers";
+import { MIN_EDU_BOUND_WALLET_GAS, trySendBNBGas, trySendEDUGas } from "./helpers";
 import { ChildToParentMessageStatus, ChildTransactionReceipt, EthBridger } from "@arbitrum/sdk";
 import { ParentToChildMessageCreator } from "@arbitrum/sdk/dist/lib/message/ParentToChildMessageCreator";
 import { BigNumber } from "@ethersproject/bignumber";
@@ -329,7 +329,7 @@ export const bridgeEDUChainToArbitrum = async (encryptedPrivKey: string, tokenAd
   }
 
   const fee = (balance * FEE_BPS) / 10_000n;
-  let amountToBridge = balance - fee - MIN_BOUND_WALLET_GAS;
+  let amountToBridge = balance - fee - MIN_EDU_BOUND_WALLET_GAS;
 
   const arbSys = externalContracts["41923"].ArbSys;
 

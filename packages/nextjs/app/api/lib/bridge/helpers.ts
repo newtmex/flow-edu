@@ -2,53 +2,96 @@ import { bscClient, bscWalletClient, eduClient, eduWalletClient } from "../clien
 import { centralAccount } from "../config";
 import { Address, parseEther } from "viem";
 
-// Config
-export const MIN_BOUND_WALLET_GAS = parseEther("0.004");
+/**
+ * Configuration for sending gas on a specific chain.
+ */
+export type ChainGasConfig = {
+  /** Friendly name of the chain (used in logging and errors) */
+  name: string;
 
-export const trySendBNBGas = async (to: Address) => {
-  const balance = await bscClient.getBalance({ address: to });
+  /** Minimum native token balance required for the target address */
+  minGas: bigint;
 
-  // Only send if balance is below MIN_BOUND_WALLET_GAS
-  if (balance >= MIN_BOUND_WALLET_GAS) return;
+  /** Public client capable of checking balances and waiting for receipts */
+  client: {
+    getBalance: (args: { address: Address }) => Promise<bigint>;
+    waitForTransactionReceipt: (args: {
+      hash: `0x${string}`;
+      confirmations?: number;
+    }) => Promise<{ status: "success" | "reverted" | "rejected" | string }>;
+  };
 
-  // Send either the missing amount or SMALL_TOP_UP, whichever is smaller
-  const refillAmount = MIN_BOUND_WALLET_GAS - balance;
-  if (refillAmount <= 0n) return; // Already has enough or close to max
+  /** Wallet client used to send native token from central account */
+  walletClient: {
+    sendTransaction: (args: { account: typeof centralAccount; to: Address; value: bigint }) => Promise<`0x${string}`>;
+  };
 
-  const txHash = await bscWalletClient.sendTransaction({
+  /** Optional number of confirmations to wait for (defaults to 1 if not provided) */
+  confirmations?: number;
+};
+
+/**
+ * Sends native gas (e.g., BNB, EDU) to a target address if its balance is below the configured threshold.
+ *
+ * @param to - Address to check and potentially fund
+ * @param config - Chain-specific configuration
+ */
+export const trySendGas = async (to: Address, config: ChainGasConfig) => {
+  const { name, minGas, client, walletClient, confirmations } = config;
+
+  const balance = await client.getBalance({ address: to });
+  if (balance >= minGas) return;
+
+  const refillAmount = minGas - balance;
+  if (refillAmount <= 0n) return;
+
+  const txHash = await walletClient.sendTransaction({
     account: centralAccount,
     to,
     value: refillAmount,
   });
 
-  const txReceipt = await bscClient.waitForTransactionReceipt({ hash: txHash, confirmations: 3 });
-  if (txReceipt.status !== "success") {
-    console.error("Failed to send BNB gas:", txReceipt);
-    throw new Error("Failed to send BNB gas");
-  }
-  console.log("Sent BNB gas:", txHash);
-};
-
-export const trySendEDUGas = async (to: Address) => {
-  const balance = await eduClient.getBalance({ address: to });
-
-  // Only send if balance is below MIN_BOUND_WALLET_GAS
-  if (balance >= MIN_BOUND_WALLET_GAS) return;
-
-  // Send either the missing amount or SMALL_TOP_UP, whichever is smaller
-  const refillAmount = MIN_BOUND_WALLET_GAS - balance;
-  if (refillAmount <= 0n) return; // Already has enough or close to max
-
-  const txHash = await eduWalletClient.sendTransaction({
-    account: centralAccount,
-    to,
-    value: refillAmount,
+  const txReceipt = await client.waitForTransactionReceipt({
+    hash: txHash,
+    confirmations,
   });
 
-  const txReceipt = await eduClient.waitForTransactionReceipt({ hash: txHash });
   if (txReceipt.status !== "success") {
-    console.error("Failed to send EDU gas:", txReceipt);
-    throw new Error("Failed to send EDU gas");
+    console.error(`Failed to send ${name} gas:`, txReceipt);
+    throw new Error(`Failed to send ${name} gas`);
   }
-  console.log("Sent EDU gas:", txHash);
+
+  console.log(`Sent ${name} gas:`, txHash);
 };
+
+/**
+ * Attempts to send BNB to a wallet if its balance is below 0.0006 BNB.
+ *
+ * Waits for 3 confirmations to ensure finality.
+ *
+ * @param to - Recipient wallet address
+ */
+export const trySendBNBGas = async (to: string) =>
+  trySendGas(to, {
+    name: "BNB",
+    minGas: parseEther("0.0006"),
+    client: bscClient,
+    walletClient: bscWalletClient,
+    confirmations: 3,
+  });
+
+/** Minimum EDU required in a bound wallet for EDU Chain operations */
+export const MIN_EDU_BOUND_WALLET_GAS = parseEther("0.004");
+
+/**
+ * Attempts to send EDU gas to a wallet if its balance is below 0.004 EDU.
+ *
+ * @param to - Recipient wallet address
+ */
+export const trySendEDUGas = async (to: string) =>
+  trySendGas(to, {
+    name: "EDU",
+    minGas: MIN_EDU_BOUND_WALLET_GAS,
+    client: eduClient,
+    walletClient: eduWalletClient,
+  });
