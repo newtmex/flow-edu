@@ -65,7 +65,7 @@ export const trySendGas = async (to: Address, config: ChainGasConfig) => {
 };
 
 /**
- * Attempts to send BNB to a wallet if its balance is below 0.0006 BNB.
+ * Attempts to send BNB to a wallet if its balance is below 0.001 BNB.
  *
  * Waits for 3 confirmations to ensure finality.
  *
@@ -74,7 +74,7 @@ export const trySendGas = async (to: Address, config: ChainGasConfig) => {
 export const trySendBNBGas = async (to: string) =>
   trySendGas(to, {
     name: "BNB",
-    minGas: parseEther("0.0006"),
+    minGas: parseEther("0.001"),
     client: bscClient,
     walletClient: bscWalletClient,
     confirmations: 3,
