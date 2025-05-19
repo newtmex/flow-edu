@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeAddresses } from "../lib/drizzleUtils";
+import { bytes32ToNormalizedAddress } from "../lib/helpers";
 import handleArbTxs from "./arbTxs";
 import { eq, or } from "drizzle-orm";
 import { db } from "~~/drizzle/db";
 import { Origin, txsOnBsc, txsOnEduChain, walletBindings } from "~~/drizzle/schema";
-
-const removeAddressZeroPadding = (address: string) => "0x" + BigInt(address).toString(16);
 
 export const POST = async (req: NextRequest) => {
   let body: any;
   try {
     body = await req.json();
     body = normalizeAddresses(body);
-    body.valueSender = removeAddressZeroPadding(body.valueSender); // Normalise valueSender bytes32
-    body.valueRecipient = removeAddressZeroPadding(body.valueRecipient); // Normalise from bytes32
+    body.valueSender = bytes32ToNormalizedAddress(body.valueSender); // Normalise valueSender bytes32
+    body.valueRecipient = bytes32ToNormalizedAddress(body.valueRecipient); // Normalise from bytes32
   } catch (e) {
     console.error(e);
     return Response.json({ message: "Invalid JSON body" }, { status: 400 });

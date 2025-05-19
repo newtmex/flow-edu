@@ -1,9 +1,9 @@
-import Encryption from "./Encryption";
-import { arbClient, arbWalletClient, bscClient, bscWalletClient, eduClient, eduWalletClient } from "./clients";
-import { centralAccount, feeCollectorAddress } from "./config";
-import { LAYERZERO_CHAIN_IDS, eduTokenAddressOnArb } from "./constants";
-import { MIN_BOUND_WALLET_GAS, trySendBNBGas, trySendEDUGas } from "./helpers";
-import { arbProvider, eduChainNetwork, eduChainProvider } from "./providers";
+import Encryption from "../Encryption";
+import { arbClient, arbWalletClient, bscClient, bscWalletClient, eduClient, eduWalletClient } from "../clients";
+import { centralAccount, feeCollectorAddress } from "../config";
+import { LAYERZERO_CHAIN_IDS, eduTokenAddressOnArb } from "../constants";
+import { arbProvider, eduChainNetwork, eduChainProvider } from "../providers";
+import { MIN_EDU_BOUND_WALLET_GAS, trySendBNBGas, trySendEDUGas } from "./helpers";
 import { ChildToParentMessageStatus, ChildTransactionReceipt, EthBridger } from "@arbitrum/sdk";
 import { ParentToChildMessageCreator } from "@arbitrum/sdk/dist/lib/message/ParentToChildMessageCreator";
 import { BigNumber } from "@ethersproject/bignumber";
@@ -74,6 +74,8 @@ export async function ensureERC20AllowanceAndBalance({
 }
 
 export const bridgeBscToArbitrum = async (encryptedPrivKey: string, tokenAddress: string | null) => {
+  const CONFIRMATIONS = 3;
+
   if (!tokenAddress) return null;
 
   const boundWallet = privateKeyToAccount(Encryption.new().decryptCipherText(encryptedPrivKey) as Hex);
@@ -108,12 +110,17 @@ export const bridgeBscToArbitrum = async (encryptedPrivKey: string, tokenAddress
     args: [boundWallet.address, proxyOFT.address],
   });
   if (allowance < amountToBridge) {
-    await bscWalletClient.writeContract({
+    const approveHash = await bscWalletClient.writeContract({
       account: boundWallet,
       abi: erc20Abi,
       address: tokenAddress,
       functionName: "approve",
       args: [proxyOFT.address, 2n ** 251n],
+    });
+
+    await bscClient.waitForTransactionReceipt({
+      hash: approveHash,
+      confirmations: CONFIRMATIONS,
     });
   }
 
@@ -322,7 +329,7 @@ export const bridgeEDUChainToArbitrum = async (encryptedPrivKey: string, tokenAd
   }
 
   const fee = (balance * FEE_BPS) / 10_000n;
-  let amountToBridge = balance - fee - MIN_BOUND_WALLET_GAS;
+  let amountToBridge = balance - fee - MIN_EDU_BOUND_WALLET_GAS;
 
   const arbSys = externalContracts["41923"].ArbSys;
 
