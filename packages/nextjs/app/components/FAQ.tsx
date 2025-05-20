@@ -19,7 +19,7 @@ const faqs = [
   },
   {
     question: "Which chains are supported?",
-    answer: "Currently, we support bridging from BNB Chain to EDU Chain. More chains will be added soon.",
+    answer: "Currently, we support bridging between BNB Chain and EDU Chain. More chains will be added soon.",
   },
   {
     question: "Do I control the destination wallet?",
